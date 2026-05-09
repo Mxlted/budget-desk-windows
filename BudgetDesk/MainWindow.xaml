@@ -1,0 +1,918 @@
+<Window x:Class="BudgetDesk.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:BudgetDesk.ViewModels"
+        xmlns:conv="clr-namespace:BudgetDesk.Converters"
+        xmlns:local="clr-namespace:BudgetDesk"
+        xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+        Title="Budget Desk" Height="900" Width="1320" MinWidth="960" MinHeight="700"
+        Icon="/Assets/icon.png"
+        Background="{StaticResource PageBgBrush}" WindowStartupLocation="CenterScreen"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        TextOptions.TextHintingMode="Fixed">
+
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
+
+    <Window.Resources>
+        <conv:PositiveNegativeColorConverter x:Key="PosNegColor"/>
+        <conv:BudgetPressureColorConverter x:Key="PressureColor"/>
+        <conv:NullToVisibilityConverter x:Key="NullVis"/>
+        <conv:InverseNullToVisibilityConverter x:Key="InvNullVis"/>
+        <conv:HexToBrushConverter x:Key="HexBrush"/>
+        <conv:EnumToBoolConverter x:Key="EnumBool"/>
+        <conv:StringEqualsToBoolConverter x:Key="StringBool"/>
+        <conv:TransactionAmountConverter x:Key="TransactionAmount"/>
+        <conv:TransactionAmountColorConverter x:Key="TransactionAmountColor"/>
+        <conv:NonRecurringVisibilityConverter x:Key="NonRecurringVis"/>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="64"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══ HEADER ═══ -->
+        <Border Grid.Row="0" Background="{StaticResource HeaderBgBrush}"
+                BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="0,0,0,1">
+            <Grid Margin="20,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Logo -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Image Source="/Assets/icon.png"
+                           Width="36" Height="36" Margin="0,0,10,0"
+                           Stretch="Uniform"
+                           SnapsToDevicePixels="True"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Budget Desk" FontSize="16" FontWeight="Bold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                        <TextBlock Text="Local-first monthly spending planner" FontSize="10"
+                                   Foreground="{StaticResource TextDimmedBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Month Navigation -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Profile selector -->
+                    <ComboBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}"
+                              DisplayMemberPath="Name" Width="150" Margin="0,0,12,0"
+                              Style="{StaticResource ModernComboBox}"/>
+
+                    <Button Content="◀" Command="{Binding PreviousMonthCommand}"
+                            Style="{StaticResource ModernButton}" Padding="8,6" FontSize="12"/>
+                    <TextBlock Text="{Binding SelectedMonthDisplay}" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"
+                               Margin="8,0" MinWidth="110" TextAlignment="Center"/>
+                    <Button Content="▶" Command="{Binding NextMonthCommand}"
+                            Style="{StaticResource ModernButton}" Padding="8,6" FontSize="12"/>
+                    <Button Content="This month" Command="{Binding GoToCurrentMonthCommand}"
+                            Style="{StaticResource ModernButton}" Margin="8,0,0,0"/>
+                    <Button Content="Export" Command="{Binding ExportDataCommand}"
+                            Style="{StaticResource ModernButton}" Margin="4,0,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══ BODY ═══ -->
+        <Grid Grid.Row="1">
+            <ScrollViewer x:Name="MainScroll"
+                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                          HorizontalContentAlignment="Stretch"
+                          Padding="20,16,20,20">
+                <StackPanel MaxWidth="1680" MinWidth="920" HorizontalAlignment="Stretch">
+
+                    <!-- Metric Tiles -->
+                    <UniformGrid Columns="4" Margin="0,0,0,16">
+                        <!-- Income -->
+                        <Border Style="{StaticResource MetricCard}" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="MONTHLY INCOME" FontSize="10" FontWeight="Bold"
+                                           Foreground="{StaticResource TextDimmedBrush}" Margin="0,0,0,8"/>
+                                <TextBlock Text="{Binding IncomeDisplay}" FontSize="28" FontWeight="ExtraBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <Border Background="#1e3a5f" CornerRadius="4" Padding="8,3" HorizontalAlignment="Left" Margin="0,8,0,0">
+                                    <TextBlock Text="{Binding IncomeDetail}" FontSize="11" Foreground="{StaticResource AccentBlueBrush}"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        <!-- Expenses -->
+                        <Border Style="{StaticResource MetricCard}" Margin="4,0">
+                            <StackPanel>
+                                <TextBlock Text="EXPENSES" FontSize="10" FontWeight="Bold"
+                                           Foreground="{StaticResource TextDimmedBrush}" Margin="0,0,0,8"/>
+                                <TextBlock Text="{Binding ExpensesDisplay}" FontSize="28" FontWeight="ExtraBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <Border Background="#3b2510" CornerRadius="4" Padding="8,3" HorizontalAlignment="Left" Margin="0,8,0,0">
+                                    <TextBlock Text="{Binding RecurringDisplay}" FontSize="11" Foreground="{StaticResource AccentOrangeBrush}"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        <!-- Cash Flow -->
+                        <Border Style="{StaticResource MetricCard}" Margin="4,0">
+                            <StackPanel>
+                                <TextBlock Text="CASH FLOW" FontSize="10" FontWeight="Bold"
+                                           Foreground="{StaticResource TextDimmedBrush}" Margin="0,0,0,8"/>
+                                <TextBlock Text="{Binding CashFlowDisplay}" FontSize="28" FontWeight="ExtraBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <Border CornerRadius="4" Padding="8,3" HorizontalAlignment="Left" Margin="0,8,0,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#1e3a5f"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding CashFlowPositive}" Value="False">
+                                                    <Setter Property="Background" Value="#3b1515"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding CashFlowDetail}" FontSize="11">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{StaticResource AccentBlueBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding CashFlowPositive}" Value="False">
+                                                        <Setter Property="Foreground" Value="{StaticResource AccentRedBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        <!-- Transactions -->
+                        <Border Style="{StaticResource MetricCard}" Margin="8,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="TRANSACTIONS" FontSize="10" FontWeight="Bold"
+                                           Foreground="{StaticResource TextDimmedBrush}" Margin="0,0,0,8"/>
+                                <TextBlock Text="{Binding TransactionCountDisplay}" FontSize="28" FontWeight="ExtraBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <Border Background="#1e3a5f" CornerRadius="4" Padding="8,3" HorizontalAlignment="Left" Margin="0,8,0,0">
+                                    <TextBlock Text="{Binding TransactionCountDetail}" FontSize="11" Foreground="{StaticResource AccentBlueBrush}"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <!-- Tab Bar -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <RadioButton Content="Dashboard" IsChecked="{Binding SelectedTab, Converter={StaticResource StringBool}, ConverterParameter=Dashboard}" Style="{StaticResource TabButton}"
+                                     GroupName="MainTabs" Command="{Binding SelectTabCommand}" CommandParameter="Dashboard"/>
+                        <RadioButton Content="Purchases" IsChecked="{Binding SelectedTab, Converter={StaticResource StringBool}, ConverterParameter=Purchases}" Style="{StaticResource TabButton}"
+                                     GroupName="MainTabs" Command="{Binding SelectTabCommand}" CommandParameter="Purchases"/>
+                        <RadioButton Content="Monthly" IsChecked="{Binding SelectedTab, Converter={StaticResource StringBool}, ConverterParameter=Monthly}" Style="{StaticResource TabButton}"
+                                     GroupName="MainTabs" Command="{Binding SelectTabCommand}" CommandParameter="Monthly"/>
+                        <RadioButton Content="Categories" IsChecked="{Binding SelectedTab, Converter={StaticResource StringBool}, ConverterParameter=Categories}" Style="{StaticResource TabButton}"
+                                     GroupName="MainTabs" Command="{Binding SelectTabCommand}" CommandParameter="Categories"/>
+                        <RadioButton Content="Import &amp; Data" IsChecked="{Binding SelectedTab, Converter={StaticResource StringBool}, ConverterParameter=Data}" Style="{StaticResource TabButton}"
+                                     GroupName="MainTabs" Command="{Binding SelectTabCommand}" CommandParameter="Data"/>
+                    </StackPanel>
+
+                    <!-- Status bar -->
+                    <Border Background="#122b26" BorderBrush="#1f5f52" BorderThickness="1"
+                            CornerRadius="6" Padding="10,7" Margin="0,0,0,12"
+                            Visibility="{Binding StatusMessage, Converter={StaticResource NullVis}}">
+                        <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource AccentGreenBrush}"
+                                   FontSize="12" FontWeight="SemiBold"/>
+                    </Border>
+
+                    <!-- ═══ TAB CONTENT ═══ -->
+
+                    <!-- DASHBOARD TAB -->
+                    <StackPanel HorizontalAlignment="Stretch"
+                                Visibility="{Binding SelectedTab, Converter={local:TabVisibilityConverter}, ConverterParameter=Dashboard}">
+                        <UniformGrid Columns="2" Margin="0,0,0,16" HorizontalAlignment="Stretch">
+                            <!-- Trend Chart -->
+                            <Border Style="{StaticResource CardStyle}" Margin="0,0,6,0">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <TextBlock Text="Monthly trend" Style="{StaticResource SectionTitle}" Margin="0,0,12,0"/>
+                                        <Border Background="#1e3a5f" CornerRadius="4" Padding="8,3" VerticalAlignment="Center">
+                                            <TextBlock Text="6 months" FontSize="11" Foreground="{StaticResource AccentBlueBrush}"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock Text="Income, total expenses, and recurring commitments"
+                                               Style="{StaticResource SectionSubtitle}" Margin="0,0,0,12"/>
+                                    <lvc:CartesianChart Series="{Binding TrendSeries}" XAxes="{Binding TrendXAxes}"
+                                                        Height="260" LegendPosition="Bottom"
+                                                        LegendTextPaint="{Binding ChartLegendTextPaint}" LegendTextSize="12"
+                                                        TooltipTextPaint="{Binding ChartTooltipTextPaint}"
+                                                        TooltipBackgroundPaint="{Binding ChartTooltipBackgroundPaint}"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Category Pie -->
+                            <Border Style="{StaticResource CardStyle}" Margin="6,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Category mix" Style="{StaticResource SectionTitle}" Margin="0,0,0,4"/>
+                                    <TextBlock Style="{StaticResource SectionSubtitle}" Margin="0,0,0,12">
+                                        <Run Text="Expenses for "/>
+                                        <Run Text="{Binding SelectedMonthDisplay, Mode=OneWay}"/>
+                                    </TextBlock>
+                                    <lvc:PieChart Series="{Binding CategoryPieSeries}" Height="300"
+                                                  LegendPosition="Right"
+                                                  LegendTextPaint="{Binding ChartLegendTextPaint}" LegendTextSize="12"
+                                                  TooltipTextPaint="{Binding ChartTooltipTextPaint}"
+                                                  TooltipBackgroundPaint="{Binding ChartTooltipBackgroundPaint}"
+                                                  InitialRotation="-90"/>
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+
+                        <!-- Yearly Summary -->
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <TextBlock Text="Yearly summary" Style="{StaticResource SectionTitle}" Margin="0,0,12,0"/>
+                                    <Border Background="#1e3a5f" CornerRadius="4" Padding="8,3" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding YearlyActiveMonths}" FontSize="11" Foreground="{StaticResource AccentBlueBrush}"/>
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource SectionSubtitle}" Margin="0,0,0,16">
+                                    <Run Text="Income, spend, and category mix for "/>
+                                    <Run Text="{Binding YearlyPeriodLabel, Mode=OneWay}"/>
+                                </TextBlock>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1.4*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                        <UniformGrid Columns="4" Margin="0,0,0,16">
+                                            <Border Background="#1a1a1a" CornerRadius="8" Padding="12,10" Margin="0,0,6,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="INCOME" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextDimmedBrush}"/>
+                                                    <TextBlock Text="{Binding YearlyIncome}" FontSize="16" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Background="#1a1a1a" CornerRadius="8" Padding="12,10" Margin="3,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="EXPENSES" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextDimmedBrush}"/>
+                                                    <TextBlock Text="{Binding YearlyExpenses}" FontSize="16" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Background="#1a1a1a" CornerRadius="8" Padding="12,10" Margin="3,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="CASH FLOW" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextDimmedBrush}"/>
+                                                    <TextBlock Text="{Binding YearlyCashFlow}" FontSize="16" FontWeight="ExtraBold"
+                                                               Foreground="{Binding YearlyCashFlowValue, Converter={StaticResource PosNegColor}}"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Background="#1a1a1a" CornerRadius="8" Padding="12,10" Margin="6,0,0,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="SAVED" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextDimmedBrush}"/>
+                                                    <TextBlock Text="{Binding YearlySaved}" FontSize="16" FontWeight="ExtraBold"
+                                                               Foreground="{Binding YearlySavingsRateValue, Converter={StaticResource PosNegColor}}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </UniformGrid>
+
+                                        <UniformGrid Columns="2" Margin="0,0,0,0">
+                                            <Border Background="Transparent" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1"
+                                                    CornerRadius="8" Padding="12,10" Margin="0,0,4,6">
+                                                <StackPanel>
+                                                    <TextBlock Text="RECURRING TOTAL" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextDimmedBrush}"/>
+                                                    <TextBlock Text="{Binding YearlyRecurring}" FontSize="14" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Background="Transparent" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1"
+                                                    CornerRadius="8" Padding="12,10" Margin="4,0,0,6">
+                                                <StackPanel>
+                                                    <TextBlock Text="AVG MONTHLY SPEND" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextDimmedBrush}"/>
+                                                    <TextBlock Text="{Binding YearlyAvgMonthly}" FontSize="14" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Background="Transparent" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1"
+                                                    CornerRadius="8" Padding="12,10" Margin="0,0,4,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="BEST CASH FLOW" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextDimmedBrush}"/>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding YearlyBestMonth}" FontSize="14" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                        <TextBlock Text="{Binding YearlyBestMonthLabel}" FontSize="11" Foreground="{StaticResource TextDimmedBrush}" VerticalAlignment="Bottom" Margin="6,0,0,1"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Background="Transparent" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1"
+                                                    CornerRadius="8" Padding="12,10" Margin="4,0,0,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="HIGHEST SPEND" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextDimmedBrush}"/>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding YearlyHighestSpend}" FontSize="14" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                        <TextBlock Text="{Binding YearlyHighestSpendLabel}" FontSize="11" Foreground="{StaticResource TextDimmedBrush}" VerticalAlignment="Bottom" Margin="6,0,0,1"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Border>
+                                        </UniformGrid>
+                                    </StackPanel>
+
+                                    <lvc:PieChart Grid.Column="1" Series="{Binding YearlyPieSeries}" Height="320"
+                                                  LegendPosition="Bottom" InitialRotation="-90"
+                                                  LegendTextPaint="{Binding ChartLegendTextPaint}" LegendTextSize="12"
+                                                  TooltipTextPaint="{Binding ChartTooltipTextPaint}"
+                                                  TooltipBackgroundPaint="{Binding ChartTooltipBackgroundPaint}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Budget Pressure + Limits -->
+                        <UniformGrid Columns="2" Margin="0,0,0,12">
+                            <Border Style="{StaticResource CardStyle}" Margin="0,0,6,0">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <TextBlock Text="Budget pressure" Style="{StaticResource SectionTitle}" Margin="0,0,12,0"/>
+                                        <Border Background="#3b2510" CornerRadius="4" Padding="8,3" VerticalAlignment="Center">
+                                            <TextBlock Text="live totals" FontSize="11" Foreground="{StaticResource AccentOrangeBrush}"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock Text="Monthly limits compared with actual spend"
+                                               Style="{StaticResource SectionSubtitle}" Margin="0,0,0,12"/>
+                                    <ItemsControl ItemsSource="{Binding BudgetBars}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Margin="0,0,0,10">
+                                                    <Grid Margin="0,0,0,4">
+                                                        <TextBlock Text="{Binding Category}" FontWeight="SemiBold" FontSize="13"
+                                                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                        <TextBlock HorizontalAlignment="Right" FontSize="12" Foreground="{StaticResource TextDimmedBrush}">
+                                                            <Run Text="{Binding Spent, StringFormat='{}{0:C2}', Mode=OneWay}"/>
+                                                            <Run Text=" / "/>
+                                                            <Run Text="{Binding Budget, StringFormat='{}{0:C2}', Mode=OneWay}"/>
+                                                        </TextBlock>
+                                                    </Grid>
+                                                    <ProgressBar Value="{Binding Percent, Mode=OneWay}" Maximum="100" Height="8"
+                                                                 Style="{StaticResource ModernProgressBar}"
+                                                                 Foreground="{Binding Percent, Converter={StaticResource PressureColor}}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Savings Goals -->
+                            <Border Style="{StaticResource CardStyle}" Margin="6,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Savings goals" Style="{StaticResource SectionTitle}" Margin="0,0,0,12"/>
+                                    <ItemsControl ItemsSource="{Binding SavingsGoals}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Margin="0,0,0,16">
+                                                    <Grid Margin="0,0,0,4">
+                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13"
+                                                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                        <TextBlock HorizontalAlignment="Right" FontSize="12" Foreground="{StaticResource TextDimmedBrush}">
+                                                            <Run Text="{Binding Saved, StringFormat='{}{0:C0}', Mode=OneWay}"/>
+                                                            <Run Text=" / "/>
+                                                            <Run Text="{Binding Target, StringFormat='{}{0:C0}', Mode=OneWay}"/>
+                                                        </TextBlock>
+                                                    </Grid>
+                                                    <ProgressBar Maximum="100" Height="8"
+                                                                 Style="{StaticResource ModernProgressBar}"
+                                                                 Foreground="{Binding Color, Converter={StaticResource HexBrush}}">
+                                                        <ProgressBar.Value>
+                                                            <MultiBinding Converter="{local:GoalPercentConverter}">
+                                                                <Binding Path="Saved"/>
+                                                                <Binding Path="Target"/>
+                                                            </MultiBinding>
+                                                        </ProgressBar.Value>
+                                                    </ProgressBar>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+                    </StackPanel>
+
+                    <!-- PURCHASES TAB -->
+                    <StackPanel HorizontalAlignment="Stretch"
+                                Visibility="{Binding SelectedTab, Converter={local:TabVisibilityConverter}, ConverterParameter=Purchases}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="340"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Add Purchase Form -->
+                            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,12,0"
+                                    Visibility="{Binding EditingTransaction, Converter={StaticResource InvNullVis}}">
+                                <StackPanel>
+                                    <TextBlock Text="Add purchase" Style="{StaticResource SectionTitle}" Margin="0,0,0,12"/>
+                                    <TextBlock Text="Type" Style="{StaticResource FieldLabel}"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <RadioButton Content="Expense"
+                                                     IsChecked="{Binding PurchaseType, Converter={StaticResource EnumBool}, ConverterParameter=Expense}"
+                                                     GroupName="PurchaseType" Style="{StaticResource TabButton}" Padding="12,6"/>
+                                        <RadioButton Content="Income" GroupName="PurchaseType"
+                                                     IsChecked="{Binding PurchaseType, Converter={StaticResource EnumBool}, ConverterParameter=Income}"
+                                                     Style="{StaticResource TabButton}" Padding="12,6"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Date" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding PurchaseDate, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Merchant" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding PurchaseMerchant, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Amount" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding PurchaseAmount, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Category" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox ItemsSource="{Binding ExpenseCategoryOptions}"
+                                              SelectedItem="{Binding PurchaseCategory}"
+                                              Style="{StaticResource ModernComboBox}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Account" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox ItemsSource="{Binding AccountOptions}"
+                                              SelectedItem="{Binding PurchaseAccount}"
+                                              Style="{StaticResource ModernComboBox}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Notes" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding PurchaseNotes, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}" Margin="0,0,0,12"/>
+                                    <Button Content="Save purchase" Command="{Binding AddPurchaseCommand}"
+                                            Style="{StaticResource AccentButton}"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Edit Transaction Form -->
+                            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,12,0"
+                                    Visibility="{Binding EditingTransaction, Converter={StaticResource NullVis}}">
+                                <StackPanel>
+                                    <TextBlock Text="Edit entry" Style="{StaticResource SectionTitle}" Margin="0,0,0,12"/>
+
+                                    <TextBlock Text="Date" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding EditDate, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}" Margin="0,0,0,8"/>
+
+                                    <TextBlock Text="Merchant" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding EditMerchant, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}" Margin="0,0,0,8"/>
+
+                                    <TextBlock Text="Amount" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding EditAmount, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}" Margin="0,0,0,8"/>
+
+                                    <TextBlock Text="Type" Style="{StaticResource FieldLabel}"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <RadioButton Content="Expense"
+                                                     IsChecked="{Binding EditType, Converter={StaticResource EnumBool}, ConverterParameter=Expense}"
+                                                     GroupName="EditPurchaseType" Style="{StaticResource TabButton}" Padding="12,6"/>
+                                        <RadioButton Content="Income"
+                                                     IsChecked="{Binding EditType, Converter={StaticResource EnumBool}, ConverterParameter=Income}"
+                                                     GroupName="EditPurchaseType" Style="{StaticResource TabButton}" Padding="12,6"/>
+                                    </StackPanel>
+
+                                    <TextBlock Text="Category" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox ItemsSource="{Binding ExpenseCategoryOptions}" SelectedItem="{Binding EditCategory}"
+                                              Style="{StaticResource ModernComboBox}" Margin="0,0,0,8"/>
+
+                                    <TextBlock Text="Account" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox ItemsSource="{Binding AccountOptions}" SelectedItem="{Binding EditAccount}"
+                                              Style="{StaticResource ModernComboBox}" Margin="0,0,0,8"/>
+
+                                    <TextBlock Text="Notes" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding EditNotes, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}" Margin="0,0,0,12"/>
+
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="Save changes" Command="{Binding SaveEditTransactionCommand}"
+                                                Style="{StaticResource AccentButton}" Margin="0,0,8,0"/>
+                                        <Button Content="Cancel" Command="{Binding CancelEditTransactionCommand}"
+                                                Style="{StaticResource ModernButton}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Transactions Table -->
+                            <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <TextBlock Text="Ledger" Style="{StaticResource SectionTitle}" Margin="0,0,12,0"/>
+                                        <Border Background="#252525" CornerRadius="4" Padding="8,3" VerticalAlignment="Center">
+                                            <TextBlock FontSize="11" Foreground="{StaticResource TextDimmedBrush}">
+                                                <Run Text="{Binding FilteredTransactions.Count, Mode=OneWay}"/>
+                                                <Run Text=" rows"/>
+                                            </TextBlock>
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock Text="Manual, imported, and scheduled entries"
+                                               Style="{StaticResource SectionSubtitle}" Margin="0,0,0,12"/>
+
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid Grid.Column="0" Margin="0,0,6,0">
+                                            <TextBox Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                                                     Style="{StaticResource ModernTextBox}"/>
+                                            <TextBlock Text="Search merchant, category, account"
+                                                       Foreground="{StaticResource TextDimmedBrush}" FontSize="13"
+                                                       Margin="12,0,0,0" VerticalAlignment="Center"
+                                                       IsHitTestVisible="False"
+                                                       Visibility="{Binding SearchQuery, Converter={StaticResource InvNullVis}}"/>
+                                        </Grid>
+                                         <ComboBox Grid.Column="1" ItemsSource="{Binding CategoryOptions}"
+                                                   SelectedItem="{Binding CategoryFilter}"
+                                                  Style="{StaticResource ModernComboBox}" Margin="6,0,0,0"/>
+                                    </Grid>
+
+                                    <DataGrid ItemsSource="{Binding FilteredTransactions}" Style="{StaticResource ModernDataGrid}"
+                                              MaxHeight="550" x:Name="TransactionsGrid"
+                                              MouseDoubleClick="TransactionsGrid_MouseDoubleClick">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Date" Binding="{Binding Date}" Width="90"/>
+                                            <DataGridTextColumn Header="Merchant" Binding="{Binding Merchant}" Width="*"/>
+                                            <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="110"/>
+                                            <DataGridTextColumn Header="Account" Binding="{Binding Account}" Width="100"/>
+                                            <DataGridTemplateColumn Header="Amount" Width="110">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Converter={StaticResource TransactionAmount}}"
+                                                                   Foreground="{Binding Type, Converter={StaticResource TransactionAmountColor}}"
+                                                                   HorizontalAlignment="Right" FontWeight="SemiBold"/>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="70"/>
+                                            <DataGridTemplateColumn Header="" Width="70">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Button Content="✎" FontSize="14" Padding="4,2"
+                                                                    Background="Transparent" BorderThickness="0"
+                                                                    Foreground="{StaticResource TextDimmedBrush}" Cursor="Hand"
+                                                                    ToolTip="Edit"
+                                                                    Command="{Binding DataContext.StartEditTransactionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding}"/>
+                                                            <Button Content="✕" FontSize="14" Padding="4,2"
+                                                                    Background="Transparent" BorderThickness="0"
+                                                                    Foreground="{StaticResource AccentRedBrush}" Cursor="Hand"
+                                                                    ToolTip="Delete"
+                                                                    Visibility="{Binding Source, Converter={StaticResource NonRecurringVis}}"
+                                                                    Command="{Binding DataContext.RemoveTransactionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding}"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- MONTHLY TAB -->
+                    <StackPanel Visibility="{Binding SelectedTab, Converter={local:TabVisibilityConverter}, ConverterParameter=Monthly}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="340"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,12,0">
+                                <StackPanel>
+                                    <TextBlock Text="Monthly item" Style="{StaticResource SectionTitle}" Margin="0,0,0,12"/>
+                                    <TextBlock Text="Type" Style="{StaticResource FieldLabel}"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <RadioButton Content="Expense"
+                                                     IsChecked="{Binding RecurringType, Converter={StaticResource EnumBool}, ConverterParameter=Expense}"
+                                                     GroupName="RecurringType" Style="{StaticResource TabButton}" Padding="12,6"/>
+                                        <RadioButton Content="Income"
+                                                     IsChecked="{Binding RecurringType, Converter={StaticResource EnumBool}, ConverterParameter=Income}"
+                                                     GroupName="RecurringType" Style="{StaticResource TabButton}" Padding="12,6"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Name" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding RecurringMerchant, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Amount" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding RecurringAmount, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Day of month" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding RecurringDay, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Category" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox ItemsSource="{Binding ExpenseCategoryOptions}"
+                                              SelectedItem="{Binding RecurringCategory}"
+                                              Style="{StaticResource ModernComboBox}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Account" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox ItemsSource="{Binding AccountOptions}"
+                                              SelectedItem="{Binding RecurringAccount}"
+                                              Style="{StaticResource ModernComboBox}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Start month (YYYY-MM)" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding RecurringStartMonth, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="End month (optional)" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding RecurringEndMonth, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Notes" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding RecurringNotes, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}" Margin="0,0,0,12"/>
+                                    <Button Content="Save monthly item" Command="{Binding AddRecurringCommand}"
+                                            Style="{StaticResource AccentButton}"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="Recurring schedule" Style="{StaticResource SectionTitle}" Margin="0,0,0,4"/>
+                                    <TextBlock Text="These appear automatically in each matching month"
+                                               Style="{StaticResource SectionSubtitle}" Margin="0,0,0,12"/>
+                                    <DataGrid ItemsSource="{Binding RecurringItems}" Style="{StaticResource ModernDataGrid}" MaxHeight="600">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Name" Binding="{Binding Merchant}" Width="*"/>
+                                            <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="70"/>
+                                            <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="110"/>
+                                            <DataGridTextColumn Header="Day" Binding="{Binding Day}" Width="50"/>
+                                            <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=C2}" Width="90"/>
+                                            <DataGridTextColumn Header="Active" Binding="{Binding Active}" Width="60"/>
+                                            <DataGridTemplateColumn Header="" Width="90">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Button Content="✎" FontSize="14" Padding="4,2"
+                                                                    Background="Transparent" BorderThickness="0"
+                                                                    Foreground="{StaticResource TextDimmedBrush}" Cursor="Hand"
+                                                                    Command="{Binding DataContext.StartEditRecurringCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding}"/>
+                                                            <Button Content="⏯" FontSize="14" Padding="4,2"
+                                                                    Background="Transparent" BorderThickness="0"
+                                                                    Foreground="{StaticResource AccentBlueBrush}" Cursor="Hand"
+                                                                    Command="{Binding DataContext.ToggleRecurringCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding}"/>
+                                                            <Button Content="✕" FontSize="14" Padding="4,2"
+                                                                    Background="Transparent" BorderThickness="0"
+                                                                    Foreground="{StaticResource AccentRedBrush}" Cursor="Hand"
+                                                                    Command="{Binding DataContext.RemoveRecurringCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding}"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Edit Recurring Panel -->
+                        <Border Style="{StaticResource CardStyle}" Margin="0,12,0,0"
+                                Visibility="{Binding EditingRecurring, Converter={StaticResource NullVis}}">
+                            <StackPanel>
+                                <TextBlock Text="Edit monthly item" Style="{StaticResource SectionTitle}" Margin="0,0,0,12"/>
+                                <UniformGrid Columns="4" Margin="0,0,0,8">
+                                    <StackPanel Margin="0,0,6,0">
+                                        <TextBlock Text="Name" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding EditRecMerchant, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="3,0">
+                                        <TextBlock Text="Amount" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding EditRecAmount, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="3,0">
+                                        <TextBlock Text="Day" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding EditRecDay, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="6,0,0,0">
+                                        <TextBlock Text="Account" Style="{StaticResource FieldLabel}"/>
+                                        <ComboBox ItemsSource="{Binding AccountOptions}" SelectedItem="{Binding EditRecAccount}"
+                                                  Style="{StaticResource ModernComboBox}"/>
+                                    </StackPanel>
+                                </UniformGrid>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="220"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                        <TextBlock Text="Type" Style="{StaticResource FieldLabel}"/>
+                                        <StackPanel Orientation="Horizontal">
+                                            <RadioButton Content="Expense"
+                                                         IsChecked="{Binding EditRecType, Converter={StaticResource EnumBool}, ConverterParameter=Expense}"
+                                                         GroupName="EditRecurringType" Style="{StaticResource TabButton}" Padding="12,6"/>
+                                            <RadioButton Content="Income"
+                                                         IsChecked="{Binding EditRecType, Converter={StaticResource EnumBool}, ConverterParameter=Income}"
+                                                         GroupName="EditRecurringType" Style="{StaticResource TabButton}" Padding="12,6"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="3,0,0,0">
+                                        <TextBlock Text="Category" Style="{StaticResource FieldLabel}"/>
+                                        <ComboBox ItemsSource="{Binding ExpenseCategoryOptions}" SelectedItem="{Binding EditRecCategory}"
+                                                  Style="{StaticResource ModernComboBox}"/>
+                                    </StackPanel>
+                                </Grid>
+                                <UniformGrid Columns="2" Margin="0,0,0,8">
+                                    <StackPanel Margin="0,0,6,0">
+                                        <TextBlock Text="Start month (YYYY-MM)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding EditRecStartMonth, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="3,0,0,0">
+                                        <TextBlock Text="End month (optional)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding EditRecEndMonth, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}"/>
+                                    </StackPanel>
+                                </UniformGrid>
+                                <TextBlock Text="Notes" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding EditRecNotes, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource ModernTextBox}" Margin="0,0,0,12"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Save changes" Command="{Binding SaveEditRecurringCommand}"
+                                            Style="{StaticResource AccentButton}" Margin="0,0,8,0"/>
+                                    <Button Content="Cancel" Command="{Binding CancelEditRecurringCommand}"
+                                            Style="{StaticResource ModernButton}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- CATEGORIES TAB -->
+                    <StackPanel Visibility="{Binding SelectedTab, Converter={local:TabVisibilityConverter}, ConverterParameter=Categories}">
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                    <TextBlock Text="Category limits" Style="{StaticResource SectionTitle}" Margin="0,0,16,0"/>
+                                    <CheckBox Content="Enabled" IsChecked="{Binding CategoryLimitsEnabled}"
+                                              Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"
+                                              Command="{Binding ToggleCategoryLimitsCommand}"/>
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                    <Button Content="Reset to $0" Command="{Binding ResetCategoryLimitsToZeroCommand}"
+                                            Style="{StaticResource ModernButton}" Margin="0,0,8,0"/>
+                                    <Button Content="Restore defaults" Command="{Binding RestoreCategoryDefaultsCommand}"
+                                            Style="{StaticResource ModernButton}"/>
+                                </StackPanel>
+
+                                <!-- Add category -->
+                                <Grid Margin="0,0,0,16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                        <TextBlock Text="New category" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding NewCategoryName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="3,0">
+                                        <TextBlock Text="Monthly limit" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding NewCategoryLimit, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="2" Content="Add category" Command="{Binding AddCategoryCommand}"
+                                            Style="{StaticResource AccentButton}" VerticalAlignment="Bottom" Margin="6,0,0,0"/>
+                                </Grid>
+
+                                <!-- Category list -->
+                                <ItemsControl ItemsSource="{Binding CategoryLimitBudgets}" x:Name="CategoryList">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="3"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,8,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="{Binding CategoryName}" Style="{StaticResource FieldLabel}"/>
+                                                    <TextBox Text="{Binding MonthlyLimit, UpdateSourceTrigger=LostFocus}"
+                                                             Style="{StaticResource ModernTextBox}"
+                                                             LostFocus="CategoryLimit_LostFocus"/>
+                                                </StackPanel>
+                                                <Button Grid.Column="1" Content="✕" FontSize="14" Padding="6,4"
+                                                        Background="Transparent" BorderThickness="0"
+                                                        Foreground="{StaticResource AccentRedBrush}" Cursor="Hand"
+                                                        VerticalAlignment="Bottom" Margin="4,0,0,0"
+                                                        Command="{Binding DataContext.RemoveCategoryCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- DATA TAB -->
+                    <StackPanel Visibility="{Binding SelectedTab, Converter={local:TabVisibilityConverter}, ConverterParameter=Data}">
+                        <UniformGrid Columns="3" Margin="0,0,0,12">
+                            <!-- Profiles -->
+                            <Border Style="{StaticResource CardStyle}" Margin="0,0,6,0">
+                                <StackPanel>
+                                    <TextBlock Text="Budget profiles" Style="{StaticResource SectionTitle}" Margin="0,0,0,12"/>
+                                    <TextBlock Text="Current profile" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}"
+                                              DisplayMemberPath="Name" Style="{StaticResource ModernComboBox}" Margin="0,0,0,12"/>
+                                    <TextBlock Text="New profile" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding NewProfileName, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}" Margin="0,0,0,8"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <RadioButton Content="Blank" IsChecked="{Binding ProfileTemplate, Converter={StaticResource StringBool}, ConverterParameter=empty}" GroupName="ProfileTemplate"
+                                                     Style="{StaticResource TabButton}" Padding="10,5"/>
+                                        <RadioButton Content="Sample" GroupName="ProfileTemplate"
+                                                     IsChecked="{Binding ProfileTemplate, Converter={StaticResource StringBool}, ConverterParameter=sample}"
+                                                     Style="{StaticResource TabButton}" Padding="10,5"/>
+                                        <RadioButton Content="Copy" GroupName="ProfileTemplate"
+                                                     IsChecked="{Binding ProfileTemplate, Converter={StaticResource StringBool}, ConverterParameter=current}"
+                                                     Style="{StaticResource TabButton}" Padding="10,5"/>
+                                    </StackPanel>
+                                    <Button Content="Create profile" Command="{Binding CreateProfileCommand}"
+                                            Style="{StaticResource AccentButton}" Margin="0,0,0,12"/>
+                                    <Border Height="1" Background="{StaticResource CardBorderBrush}" Margin="0,0,0,12"/>
+                                    <TextBlock Text="Rename current profile" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding RenameProfileName, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}" Margin="0,0,0,8"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="Rename" Command="{Binding RenameActiveProfileCommand}"
+                                                Style="{StaticResource ModernButton}" Margin="0,0,8,0"/>
+                                        <Button Content="Delete" Command="{Binding DeleteActiveProfileCommand}"
+                                                Style="{StaticResource DangerButton}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Statement Import -->
+                            <Border Style="{StaticResource CardStyle}" Margin="3,0">
+                                <StackPanel>
+                                    <TextBlock Text="Statement import" Style="{StaticResource SectionTitle}" Margin="0,0,0,12"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <RadioButton Content="Bank" IsChecked="{Binding StatementType, Converter={StaticResource StringBool}, ConverterParameter=bank}" GroupName="StatementType"
+                                                     Style="{StaticResource TabButton}" Padding="12,5"/>
+                                        <RadioButton Content="Credit card" GroupName="StatementType"
+                                                     IsChecked="{Binding StatementType, Converter={StaticResource StringBool}, ConverterParameter=credit-card}"
+                                                     Style="{StaticResource TabButton}" Padding="12,5"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Import account" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox ItemsSource="{Binding AccountOptions}" SelectedItem="{Binding ImportAccount}"
+                                              Style="{StaticResource ModernComboBox}" Margin="0,0,0,8"/>
+                                    <Button Content="Choose CSV file..." Command="{Binding PreviewStatementCommand}"
+                                            Style="{StaticResource ModernButton}" Margin="0,0,0,8"/>
+                                    <Button Style="{StaticResource AccentButton}" Command="{Binding ImportRowsCommand}">
+                                        <TextBlock>
+                                            <Run Text="Import "/>
+                                            <Run Text="{Binding ImportPreview.Count, Mode=OneWay}"/>
+                                            <Run Text=" rows"/>
+                                        </TextBlock>
+                                    </Button>
+                                    <TextBlock Text="Expected columns: date, description/merchant, and amount."
+                                               Style="{StaticResource SectionSubtitle}" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Local Storage -->
+                            <Border Style="{StaticResource CardStyle}" Margin="6,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Local storage" Style="{StaticResource SectionTitle}" Margin="0,0,0,12"/>
+                                    <TextBlock Text="Budget profiles are saved to AppData/Local/BudgetDesk."
+                                               Style="{StaticResource SectionSubtitle}" Margin="0,0,0,12" TextWrapping="Wrap"/>
+                                    <Button Content="Export current profile" Command="{Binding ExportDataCommand}"
+                                            Style="{StaticResource ModernButton}" Margin="0,0,0,8"/>
+                                    <Button Content="Import from JSON..." Command="{Binding ImportDataCommand}"
+                                            Style="{StaticResource ModernButton}" Margin="0,0,0,16"/>
+                                    <Border Height="1" Background="{StaticResource CardBorderBrush}" Margin="0,0,0,12"/>
+                                    <Button Content="Clear saved budget data" Command="{Binding ClearBudgetDataCommand}"
+                                            Style="{StaticResource DangerButton}" Margin="0,0,0,8"/>
+                                    <Button Content="Reset sample data" Command="{Binding ResetSampleDataCommand}"
+                                            Style="{StaticResource ModernButton}"/>
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+
+                        <!-- Import Preview -->
+                        <Border Style="{StaticResource CardStyle}"
+                                Visibility="{Binding ImportPreview.Count, Converter={local:CountVisConverter}}">
+                            <StackPanel>
+                                <TextBlock Text="Import preview" Style="{StaticResource SectionTitle}" Margin="0,0,0,12"/>
+                                <DataGrid ItemsSource="{Binding ImportPreview}" Style="{StaticResource ModernDataGrid}" MaxHeight="320">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Date" Binding="{Binding Date}" Width="90"/>
+                                        <DataGridTextColumn Header="Merchant" Binding="{Binding Merchant}" Width="*"/>
+                                        <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="110"/>
+                                        <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="70"/>
+                                        <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=C2}" Width="90"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Window>
