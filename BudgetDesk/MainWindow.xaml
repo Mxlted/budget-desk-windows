@@ -220,7 +220,8 @@
                                                                     LegendTextPaint="{Binding DataContext.ChartLegendTextPaint, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                     LegendTextSize="12"
                                                                     TooltipTextPaint="{Binding DataContext.ChartTooltipTextPaint, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                    TooltipBackgroundPaint="{Binding DataContext.ChartTooltipBackgroundPaint, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                                    TooltipBackgroundPaint="{Binding DataContext.ChartTooltipBackgroundPaint, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    AnimationsSpeed="0:0:0.3"/>
                                             </DataTemplate>
                                         </ContentControl.ContentTemplate>
                                     </ContentControl>
@@ -245,7 +246,8 @@
                                                               LegendTextSize="12"
                                                               TooltipTextPaint="{Binding DataContext.ChartTooltipTextPaint, RelativeSource={RelativeSource AncestorType=Window}}"
                                                               TooltipBackgroundPaint="{Binding DataContext.ChartTooltipBackgroundPaint, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                              InitialRotation="-90"/>
+                                                              InitialRotation="-90"
+                                                              AnimationsSpeed="0:0:0.3"/>
                                             </DataTemplate>
                                         </ContentControl.ContentTemplate>
                                     </ContentControl>
@@ -351,7 +353,8 @@
                                                               LegendTextPaint="{Binding DataContext.ChartLegendTextPaint, RelativeSource={RelativeSource AncestorType=Window}}"
                                                               LegendTextSize="12"
                                                               TooltipTextPaint="{Binding DataContext.ChartTooltipTextPaint, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                              TooltipBackgroundPaint="{Binding DataContext.ChartTooltipBackgroundPaint, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                              TooltipBackgroundPaint="{Binding DataContext.ChartTooltipBackgroundPaint, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                              AnimationsSpeed="0:0:0.3"/>
                                             </DataTemplate>
                                         </ContentControl.ContentTemplate>
                                     </ContentControl>
