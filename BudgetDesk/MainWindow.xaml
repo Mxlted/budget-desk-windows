@@ -29,6 +29,7 @@
         <conv:TransactionAmountConverter x:Key="TransactionAmount"/>
         <conv:TransactionAmountColorConverter x:Key="TransactionAmountColor"/>
         <conv:NonRecurringVisibilityConverter x:Key="NonRecurringVis"/>
+        <conv:BoolToVisibilityConverter x:Key="BoolVis"/>
     </Window.Resources>
 
     <Grid>
@@ -358,9 +359,14 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Budget Pressure + Limits -->
-                        <UniformGrid Columns="2" Margin="0,0,0,12">
-                            <Border Style="{StaticResource CardStyle}" Margin="0,0,6,0">
+                        <!-- Budget Pressure + Savings -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,6,0"
+                                    Visibility="{Binding CategoryLimitsEnabled, Converter={StaticResource BoolVis}}">
                                 <StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                         <TextBlock Text="Budget pressure" Style="{StaticResource SectionTitle}" Margin="0,0,12,0"/>
@@ -393,10 +399,24 @@
                                 </StackPanel>
                             </Border>
 
-                            <!-- Savings Goals -->
-                            <Border Style="{StaticResource CardStyle}" Margin="6,0,0,0">
+                            <!-- Savings Goals / Savings -->
+                            <Border>
+                                <Border.Style>
+                                    <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                                        <Setter Property="Margin" Value="6,0,0,0"/>
+                                        <Setter Property="Grid.Column" Value="1"/>
+                                        <Setter Property="Grid.ColumnSpan" Value="1"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CategoryLimitsEnabled}" Value="False">
+                                                <Setter Property="Margin" Value="0"/>
+                                                <Setter Property="Grid.Column" Value="0"/>
+                                                <Setter Property="Grid.ColumnSpan" Value="2"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
                                 <StackPanel>
-                                    <TextBlock Text="Savings goals" Style="{StaticResource SectionTitle}" Margin="0,0,0,12"/>
+                                    <TextBlock Text="{Binding SavingsGoalsTitle}" Style="{StaticResource SectionTitle}" Margin="0,0,0,12"/>
                                     <ItemsControl ItemsSource="{Binding SavingsGoals}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
@@ -404,19 +424,41 @@
                                                     <Grid Margin="0,0,0,4">
                                                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13"
                                                                    Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                                        <TextBlock HorizontalAlignment="Right" FontSize="12" Foreground="{DynamicResource TextDimmedBrush}">
+                                                        <!-- "Saved / Target" form, when limits are visible -->
+                                                        <TextBlock HorizontalAlignment="Right" FontSize="12"
+                                                                   Foreground="{DynamicResource TextDimmedBrush}"
+                                                                   Visibility="{Binding DataContext.ShowSavingsGoalLimits, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolVis}}">
                                                             <Run Text="{Binding Saved, StringFormat='{}{0:C0}', Mode=OneWay}"/>
                                                             <Run Text=" / "/>
                                                             <Run Text="{Binding Target, StringFormat='{}{0:C0}', Mode=OneWay}"/>
                                                         </TextBlock>
+                                                        <!-- Plain saved amount, when limits are hidden -->
+                                                        <TextBlock HorizontalAlignment="Right" FontSize="12" FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource AccentBlueBrush}"
+                                                                   Text="{Binding Saved, StringFormat='{}{0:C0}', Mode=OneWay}"
+                                                                   Visibility="{Binding DataContext.ShowSavingsGoalLimits, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolVis}, ConverterParameter=invert}"/>
                                                     </Grid>
                                                     <ProgressBar Maximum="100" Height="8"
                                                                  Style="{StaticResource ModernProgressBar}"
-                                                                 Foreground="{Binding Color, Converter={StaticResource HexBrush}}">
+                                                                 Foreground="{Binding Color, Converter={StaticResource HexBrush}}"
+                                                                 Visibility="{Binding DataContext.ShowSavingsGoalLimits, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolVis}}">
                                                         <ProgressBar.Value>
                                                             <MultiBinding Converter="{local:GoalPercentConverter}">
                                                                 <Binding Path="Saved"/>
                                                                 <Binding Path="Target"/>
+                                                            </MultiBinding>
+                                                        </ProgressBar.Value>
+                                                    </ProgressBar>
+                                                    <!-- No-target mode: bar shows this goal's Saved as a share of the
+                                                         largest Saved across all goals, so users still see relative size. -->
+                                                    <ProgressBar Maximum="100" Height="8"
+                                                                 Style="{StaticResource ModernProgressBar}"
+                                                                 Foreground="{Binding Color, Converter={StaticResource HexBrush}}"
+                                                                 Visibility="{Binding DataContext.ShowSavingsGoalLimits, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolVis}, ConverterParameter=invert}">
+                                                        <ProgressBar.Value>
+                                                            <MultiBinding Converter="{local:GoalPercentConverter}">
+                                                                <Binding Path="Saved"/>
+                                                                <Binding Path="DataContext.MaxSavingsAmount" RelativeSource="{RelativeSource AncestorType=Window}"/>
                                                             </MultiBinding>
                                                         </ProgressBar.Value>
                                                     </ProgressBar>
@@ -426,7 +468,7 @@
                                     </ItemsControl>
                                 </StackPanel>
                             </Border>
-                        </UniformGrid>
+                        </Grid>
                     </StackPanel>
 
                     <!-- PURCHASES TAB -->
@@ -774,9 +816,39 @@
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                                     <TextBlock Text="Category limits" Style="{StaticResource SectionTitle}" Margin="0,0,16,0"/>
-                                    <CheckBox Content="Enabled" IsChecked="{Binding CategoryLimitsEnabled}"
-                                              Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"
-                                              Command="{Binding ToggleCategoryLimitsCommand}"/>
+                                    <ToggleButton IsChecked="{Binding CategoryLimitsEnabled}"
+                                                  VerticalAlignment="Center" Cursor="Hand"
+                                                  ToolTip="Toggle category limits on or off">
+                                        <ToggleButton.Template>
+                                            <ControlTemplate TargetType="ToggleButton">
+                                                <Border x:Name="Bd" CornerRadius="6" Padding="12,6"
+                                                        BorderThickness="1"
+                                                        Background="{DynamicResource ButtonBgBrush}"
+                                                        BorderBrush="{DynamicResource InputBorderBrush}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Ellipse x:Name="Dot" Width="9" Height="9" Margin="0,0,8,0"
+                                                                 VerticalAlignment="Center"
+                                                                 Fill="{DynamicResource TextDimmedBrush}"/>
+                                                        <TextBlock x:Name="Label" Text="Disabled" FontSize="12" FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                                   VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsChecked" Value="True">
+                                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource PositiveBadgeBgBrush}"/>
+                                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBlueBrush}"/>
+                                                        <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource AccentBlueBrush}"/>
+                                                        <Setter TargetName="Label" Property="Text" Value="Enabled"/>
+                                                        <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource AccentBlueBrush}"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource InputHoverBorderBrush}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </ToggleButton.Template>
+                                    </ToggleButton>
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
@@ -916,10 +988,16 @@
                                     <Button Content="Import from JSON..." Command="{Binding ImportDataCommand}"
                                             Style="{StaticResource ModernButton}" Margin="0,0,0,16"/>
                                     <Border Height="1" Background="{DynamicResource CardBorderBrush}" Margin="0,0,0,12"/>
-                                    <Button Content="Clear saved budget data" Command="{Binding ClearBudgetDataCommand}"
-                                            Style="{StaticResource DangerButton}" Margin="0,0,0,8"/>
-                                    <Button Content="Reset sample data" Command="{Binding ResetSampleDataCommand}"
-                                            Style="{StaticResource ModernButton}"/>
+                                    <Button Content="REMOVE ALL BUDGET DATA"
+                                            Command="{Binding ClearBudgetDataCommand}"
+                                            Style="{StaticResource DangerButton}"
+                                            FontWeight="ExtraBold" Padding="14,9"
+                                            Margin="0,0,0,8"
+                                            ToolTip="Permanently delete every transaction, recurring item, savings goal, and category limit in this profile."/>
+                                    <Button Content="Restore Default Sample Data"
+                                            Command="{Binding ResetSampleDataCommand}"
+                                            Style="{StaticResource DangerButton}"
+                                            ToolTip="Replace this profile with the built-in sample data."/>
                                 </StackPanel>
                             </Border>
                         </UniformGrid>

@@ -36,3 +36,7 @@ coverage/
 *.log
 *.tmp
 *.temp
+
+# Local launchers
+/run.bat
+/publish.bat

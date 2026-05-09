@@ -66,6 +66,9 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] ObservableCollection<SavingsGoal> _savingsGoals = [];
     [ObservableProperty] bool _categoryLimitsEnabled = true;
     [ObservableProperty] bool _hasCategoryLimitValues = true;
+    [ObservableProperty] bool _showSavingsGoalLimits = true;
+    [ObservableProperty] string _savingsGoalsTitle = "Savings goals";
+    [ObservableProperty] double _maxSavingsAmount = 1;
 
     // Yearly summary
     [ObservableProperty] string _yearlyPeriodLabel = "";
@@ -155,7 +158,15 @@ public partial class MainViewModel : ObservableObject
     {
         var profiles = _storage.LoadProfiles();
         Profiles = new ObservableCollection<BudgetProfile>(profiles);
-        ActiveProfile = Profiles.FirstOrDefault();
+
+        // Restore the profile that was active the last time the app closed.
+        // Fall back to the first profile if the saved id isn't in the list
+        // (e.g. it was deleted, or this is a fresh install).
+        var lastId = _storage.LoadActiveProfileId();
+        ActiveProfile = (string.IsNullOrWhiteSpace(lastId)
+            ? null
+            : Profiles.FirstOrDefault(p => string.Equals(p.Id, lastId, StringComparison.OrdinalIgnoreCase)))
+            ?? Profiles.FirstOrDefault();
         RenameProfileName = ActiveProfile?.Name ?? "";
         SelectedMonth = BudgetCalculator.CurrentMonthKey();
         RecurringStartMonth = SelectedMonth;
@@ -180,6 +191,9 @@ public partial class MainViewModel : ObservableObject
         EditingRecurring = null;
         SyncThemeFromState();
         RefreshAll();
+
+        // Remember which profile the user is on so the next launch reopens it.
+        _storage.SaveActiveProfileId(value?.Id ?? "");
     }
 
     partial void OnSelectedThemeChanged(InterfaceTheme value)
@@ -327,7 +341,9 @@ public partial class MainViewModel : ObservableObject
 
         var bars = BudgetCalculator.GetBudgetBars(State, SelectedMonth);
         BudgetBars = new ObservableCollection<BudgetBarItem>(bars);
-        CategoryLimitsEnabled = State.CategoryLimitsEnabled;
+        _suppressCategoryLimitsSync = true;
+        try { CategoryLimitsEnabled = State.CategoryLimitsEnabled; }
+        finally { _suppressCategoryLimitsSync = false; }
         HasCategoryLimitValues = State.Budgets.Any(b => b.CategoryName != "Income" && b.MonthlyLimit > 0);
 
         RefreshYearlySummary();
@@ -395,6 +411,19 @@ public partial class MainViewModel : ObservableObject
     void RefreshSavingsGoals()
     {
         SavingsGoals = new ObservableCollection<SavingsGoal>(State.SavingsGoals);
+
+        // Goal "limits" (the target + progress bar) only make sense when category
+        // limits are on AND at least one goal actually has a Target > 0. When they
+        // don't, hide the target/progress bits and rename the card to "Savings".
+        var hasTargets = State.SavingsGoals.Any(g => g.Target > 0);
+        ShowSavingsGoalLimits = State.CategoryLimitsEnabled && hasTargets;
+        SavingsGoalsTitle = ShowSavingsGoalLimits ? "Savings goals" : "Savings";
+
+        // Denominator for the no-target bar. Must be > 0 so GoalPercentConverter
+        // doesn't fall through to 0; if every goal is at $0 we keep 1 and bars
+        // collapse to empty, which is the right visual.
+        var max = State.SavingsGoals.Count == 0 ? 0 : State.SavingsGoals.Max(g => g.Saved);
+        MaxSavingsAmount = max > 0 ? max : 1;
     }
 
     void SaveAndRefresh()
@@ -740,11 +769,18 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
-    void ToggleCategoryLimits()
+    bool _suppressCategoryLimitsSync;
+
+    partial void OnCategoryLimitsEnabledChanged(bool value)
     {
-        State.CategoryLimitsEnabled = !State.CategoryLimitsEnabled;
-        SaveAndRefresh();
+        if (!_initialized || _suppressCategoryLimitsSync) return;
+        if (State.CategoryLimitsEnabled == value) return;
+
+        State.CategoryLimitsEnabled = value;
+        SaveProfilesOnly();
+        RefreshDashboard();
+        RefreshSavingsGoals();
+        ShowStatus(value ? "Category limits enabled." : "Category limits disabled.");
     }
 
     [RelayCommand]
@@ -902,8 +938,16 @@ public partial class MainViewModel : ObservableObject
     void ClearBudgetData()
     {
         if (ActiveProfile == null) return;
-        if (MessageBox.Show("Clear all saved budget data from this profile?",
-            "Clear data", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+        var confirmed = Views.ConfirmDialog.Show(
+            owner: Application.Current?.MainWindow,
+            title: "Remove all budget data",
+            body: $"This permanently removes every transaction, recurring item, savings goal, " +
+                  $"and category limit from the \"{ActiveProfile.Name}\" profile. Theme and " +
+                  $"profile name are kept. This cannot be undone.",
+            confirmLabel: "REMOVE ALL BUDGET DATA",
+            backupHint: "Tip: export this profile from \"Local storage\" first if you might want it back.",
+            destructive: true);
+        if (!confirmed) return;
 
         ActiveProfile.State = SampleData.CreateEmptyBudgetState();
         ActiveProfile.State.Theme = SelectedTheme;
@@ -911,15 +955,23 @@ public partial class MainViewModel : ObservableObject
         SearchQuery = "";
         CategoryFilter = AllCategoriesFilter;
         SaveAndRefresh();
-        ShowStatus("Budget data cleared.");
+        ShowStatus("Budget data removed.");
     }
 
     [RelayCommand]
     void ResetSampleData()
     {
         if (ActiveProfile == null) return;
-        if (MessageBox.Show("Reset this profile to sample data?",
-            "Reset", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+        var confirmed = Views.ConfirmDialog.Show(
+            owner: Application.Current?.MainWindow,
+            title: "Restore default sample data",
+            body: $"This will replace everything in the \"{ActiveProfile.Name}\" profile with the " +
+                  $"built-in sample budget. All of your existing transactions, recurring items, " +
+                  $"savings goals, and category limits will be removed.",
+            confirmLabel: "Restore Default Sample Data",
+            backupHint: "Make sure to back up first — export this profile from \"Local storage\" if you want a copy of the current data.",
+            destructive: true);
+        if (!confirmed) return;
 
         ActiveProfile.State = SampleData.CreateInitialBudgetState();
         ActiveProfile.State.Theme = SelectedTheme;

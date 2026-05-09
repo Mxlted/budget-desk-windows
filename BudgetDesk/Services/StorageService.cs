@@ -12,6 +12,7 @@ public class StorageService
         "BudgetDesk");
 
     static readonly string ProfilesFile = Path.Combine(AppDataFolder, "profiles.json");
+    static readonly string SessionFile = Path.Combine(AppDataFolder, "session.json");
 
     static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -27,17 +28,31 @@ public class StorageService
 
     public List<BudgetProfile> LoadProfiles()
     {
+        var loaded = TryLoadFrom(ProfilesFile);
+        if (loaded != null) return loaded;
+
+        // If the main file is missing/corrupt, try the temp file from a
+        // partially completed atomic save before giving up.
+        var tempFile = ProfilesFile + ".tmp";
+        loaded = TryLoadFrom(tempFile);
+        if (loaded != null) return loaded;
+
+        return [CreateStarterProfile()];
+    }
+
+    static List<BudgetProfile>? TryLoadFrom(string path)
+    {
         try
         {
-            if (!File.Exists(ProfilesFile)) return [CreateStarterProfile()];
-            var json = File.ReadAllText(ProfilesFile);
+            if (!File.Exists(path)) return null;
+            var json = File.ReadAllText(path);
             var profiles = JsonSerializer.Deserialize<List<BudgetProfile>>(json, JsonOptions);
-            if (profiles == null || profiles.Count == 0) return [CreateStarterProfile()];
+            if (profiles == null || profiles.Count == 0) return null;
             return NormalizeProfiles(profiles);
         }
         catch
         {
-            return [CreateStarterProfile()];
+            return null;
         }
     }
 
@@ -45,7 +60,66 @@ public class StorageService
     {
         profiles = NormalizeProfiles(profiles);
         var json = JsonSerializer.Serialize(profiles, JsonOptions);
-        File.WriteAllText(ProfilesFile, json);
+
+        // Atomic write: write to a temp file in the same folder, then replace
+        // the real file. This prevents profiles.json from being corrupted if
+        // the process is killed mid-write.
+        Directory.CreateDirectory(AppDataFolder);
+        var tempFile = ProfilesFile + ".tmp";
+        File.WriteAllText(tempFile, json);
+        if (File.Exists(ProfilesFile))
+        {
+            // File.Replace gives an atomic rename on the same volume.
+            File.Replace(tempFile, ProfilesFile, null);
+        }
+        else
+        {
+            File.Move(tempFile, ProfilesFile);
+        }
+    }
+
+    public string LoadActiveProfileId()
+    {
+        try
+        {
+            if (!File.Exists(SessionFile)) return "";
+            var json = File.ReadAllText(SessionFile);
+            var session = JsonSerializer.Deserialize<SessionState>(json, JsonOptions);
+            return session?.ActiveProfileId?.Trim() ?? "";
+        }
+        catch
+        {
+            return "";
+        }
+    }
+
+    public void SaveActiveProfileId(string profileId)
+    {
+        try
+        {
+            Directory.CreateDirectory(AppDataFolder);
+            var session = new SessionState { ActiveProfileId = profileId ?? "" };
+            var json = JsonSerializer.Serialize(session, JsonOptions);
+
+            // Same atomic-write pattern as profiles.json — tiny file, but
+            // killing the process mid-write shouldn't poison startup.
+            var tempFile = SessionFile + ".tmp";
+            File.WriteAllText(tempFile, json);
+            if (File.Exists(SessionFile))
+                File.Replace(tempFile, SessionFile, null);
+            else
+                File.Move(tempFile, SessionFile);
+        }
+        catch
+        {
+            // Persisting the last-active profile is best-effort; never block
+            // shutdown or profile switches if the disk is unhappy.
+        }
+    }
+
+    sealed class SessionState
+    {
+        public string ActiveProfileId { get; set; } = "";
     }
 
     public string ExportProfile(BudgetState state, string profileName, string month)

@@ -124,6 +124,19 @@ public class StringEqualsToBoolConverter : IValueConverter
         value is true && parameter is string target ? target : Binding.DoNothing;
 }
 
+public class BoolToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        var invert = parameter is string s && s.Equals("invert", StringComparison.OrdinalIgnoreCase);
+        var flag = value is bool b && b;
+        if (invert) flag = !flag;
+        return flag ? Visibility.Visible : Visibility.Collapsed;
+    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        Binding.DoNothing;
+}
+
 public class NonRecurringVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>

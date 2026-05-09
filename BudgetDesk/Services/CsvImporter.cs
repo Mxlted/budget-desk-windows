@@ -105,6 +105,10 @@ public static class CsvImporter
 
     static List<List<string>> ParseDelimitedText(string text)
     {
+        // Strip a UTF-8/UTF-16 BOM if it slipped in. Otherwise the very first
+        // header (and the delimiter sniff below) sees an invisible character.
+        if (text.Length > 0 && text[0] == '\uFEFF') text = text[1..];
+
         var firstLine = text.Split('\n').FirstOrDefault(l => !string.IsNullOrWhiteSpace(l)) ?? "";
         var delimiter = firstLine.Contains('\t') ? '\t' : firstLine.Contains(';') ? ';' : ',';
 
