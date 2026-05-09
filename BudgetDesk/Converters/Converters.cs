@@ -51,7 +51,8 @@ public class PositiveNegativeColorConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is double d)
-            return FrozenBrush(d >= 0 ? Color.FromRgb(20, 184, 166) : Color.FromRgb(239, 68, 68));
+            return ResourceBrush(d >= 0 ? "AccentGreenBrush" : "AccentRedBrush",
+                d >= 0 ? Color.FromRgb(20, 184, 166) : Color.FromRgb(239, 68, 68));
         return FrozenBrush(Colors.Gray);
     }
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
@@ -64,9 +65,9 @@ public class BudgetPressureColorConverter : IValueConverter
     {
         if (value is double pct)
         {
-            if (pct > 100) return FrozenBrush(Color.FromRgb(239, 68, 68));
-            if (pct > 80) return FrozenBrush(Color.FromRgb(249, 115, 22));
-            return FrozenBrush(Color.FromRgb(59, 130, 246));
+            if (pct > 100) return ResourceBrush("AccentRedBrush", Color.FromRgb(239, 68, 68));
+            if (pct > 80) return ResourceBrush("AccentOrangeBrush", Color.FromRgb(249, 115, 22));
+            return ResourceBrush("AccentBlueBrush", Color.FromRgb(59, 130, 246));
         }
         return FrozenBrush(Colors.Gray);
     }
@@ -94,8 +95,8 @@ public class TransactionAmountColorConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is Models.TransactionType t && t == Models.TransactionType.Income)
-            return FrozenBrush(Color.FromRgb(59, 130, 246));
-        return FrozenBrush(Colors.White);
+            return ResourceBrush("AccentBlueBrush", Color.FromRgb(59, 130, 246));
+        return ResourceBrush("TextPrimaryBrush", Colors.White);
     }
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         Binding.DoNothing;
@@ -134,6 +135,13 @@ public class NonRecurringVisibilityConverter : IValueConverter
 
 static class ConverterBrushes
 {
+    public static Brush ResourceBrush(string key, Color fallback)
+    {
+        if (Application.Current?.TryFindResource(key) is Brush brush)
+            return brush;
+        return FrozenBrush(fallback);
+    }
+
     public static SolidColorBrush FrozenBrush(Color color)
     {
         var brush = new SolidColorBrush(color);

@@ -178,6 +178,7 @@ public class StorageService
         }
 
         state.PlannedMonthlyIncome = Math.Max(0, Math.Round(state.PlannedMonthlyIncome, 2));
+        state.Theme = Enum.IsDefined(state.Theme) ? state.Theme : InterfaceTheme.Dark;
         return state;
     }
 

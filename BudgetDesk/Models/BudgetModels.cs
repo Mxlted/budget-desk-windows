@@ -2,6 +2,7 @@ namespace BudgetDesk.Models;
 
 public enum TransactionType { Expense, Income }
 public enum TransactionSource { Manual, Import, Recurring }
+public enum InterfaceTheme { Dark, Light, Oled }
 
 public class Transaction
 {
@@ -58,6 +59,7 @@ public class BudgetState
     public List<SavingsGoal> SavingsGoals { get; set; } = [];
     public List<string> Accounts { get; set; } = [];
     public double PlannedMonthlyIncome { get; set; }
+    public InterfaceTheme Theme { get; set; } = InterfaceTheme.Dark;
 }
 
 public class BudgetProfile

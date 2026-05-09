@@ -7,7 +7,7 @@
         xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
         Title="Budget Desk" Height="900" Width="1320" MinWidth="960" MinHeight="700"
         Icon="/Assets/icon.png"
-        Background="{StaticResource PageBgBrush}" WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource PageBgBrush}" WindowStartupLocation="CenterScreen"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Display"
@@ -38,8 +38,8 @@
         </Grid.RowDefinitions>
 
         <!-- ═══ HEADER ═══ -->
-        <Border Grid.Row="0" Background="{StaticResource HeaderBgBrush}"
-                BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="0,0,0,1">
+        <Border Grid.Row="0" Background="{DynamicResource HeaderBgBrush}"
+                BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1">
             <Grid Margin="20,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -56,14 +56,20 @@
                            RenderOptions.BitmapScalingMode="HighQuality"/>
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="Budget Desk" FontSize="16" FontWeight="Bold"
-                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
                         <TextBlock Text="Local-first monthly spending planner" FontSize="10"
-                                   Foreground="{StaticResource TextDimmedBrush}"/>
+                                   Foreground="{DynamicResource TextDimmedBrush}"/>
                     </StackPanel>
                 </StackPanel>
 
                 <!-- Month Navigation -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Theme selector -->
+                    <ComboBox ItemsSource="{Binding ThemeOptions}" SelectedValue="{Binding SelectedTheme}"
+                              SelectedValuePath="Mode" DisplayMemberPath="Name"
+                              Width="130" Margin="0,0,12,0"
+                              Style="{StaticResource ModernComboBox}"/>
+
                     <!-- Profile selector -->
                     <ComboBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}"
                               DisplayMemberPath="Name" Width="150" Margin="0,0,12,0"
@@ -72,7 +78,7 @@
                     <Button Content="◀" Command="{Binding PreviousMonthCommand}"
                             Style="{StaticResource ModernButton}" Padding="8,6" FontSize="12"/>
                     <TextBlock Text="{Binding SelectedMonthDisplay}" FontSize="14" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"
                                Margin="8,0" MinWidth="110" TextAlignment="Center"/>
                     <Button Content="▶" Command="{Binding NextMonthCommand}"
                             Style="{StaticResource ModernButton}" Padding="8,6" FontSize="12"/>
@@ -98,11 +104,11 @@
                         <Border Style="{StaticResource MetricCard}" Margin="0,0,8,0">
                             <StackPanel>
                                 <TextBlock Text="MONTHLY INCOME" FontSize="10" FontWeight="Bold"
-                                           Foreground="{StaticResource TextDimmedBrush}" Margin="0,0,0,8"/>
+                                           Foreground="{DynamicResource TextDimmedBrush}" Margin="0,0,0,8"/>
                                 <TextBlock Text="{Binding IncomeDisplay}" FontSize="28" FontWeight="ExtraBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}"/>
-                                <Border Background="#1e3a5f" CornerRadius="4" Padding="8,3" HorizontalAlignment="Left" Margin="0,8,0,0">
-                                    <TextBlock Text="{Binding IncomeDetail}" FontSize="11" Foreground="{StaticResource AccentBlueBrush}"/>
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <Border Background="{DynamicResource PositiveBadgeBgBrush}" CornerRadius="4" Padding="8,3" HorizontalAlignment="Left" Margin="0,8,0,0">
+                                    <TextBlock Text="{Binding IncomeDetail}" FontSize="11" Foreground="{DynamicResource AccentBlueBrush}"/>
                                 </Border>
                             </StackPanel>
                         </Border>
@@ -110,11 +116,11 @@
                         <Border Style="{StaticResource MetricCard}" Margin="4,0">
                             <StackPanel>
                                 <TextBlock Text="EXPENSES" FontSize="10" FontWeight="Bold"
-                                           Foreground="{StaticResource TextDimmedBrush}" Margin="0,0,0,8"/>
+                                           Foreground="{DynamicResource TextDimmedBrush}" Margin="0,0,0,8"/>
                                 <TextBlock Text="{Binding ExpensesDisplay}" FontSize="28" FontWeight="ExtraBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}"/>
-                                <Border Background="#3b2510" CornerRadius="4" Padding="8,3" HorizontalAlignment="Left" Margin="0,8,0,0">
-                                    <TextBlock Text="{Binding RecurringDisplay}" FontSize="11" Foreground="{StaticResource AccentOrangeBrush}"/>
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <Border Background="{DynamicResource WarningBadgeBgBrush}" CornerRadius="4" Padding="8,3" HorizontalAlignment="Left" Margin="0,8,0,0">
+                                    <TextBlock Text="{Binding RecurringDisplay}" FontSize="11" Foreground="{DynamicResource AccentOrangeBrush}"/>
                                 </Border>
                             </StackPanel>
                         </Border>
@@ -122,16 +128,16 @@
                         <Border Style="{StaticResource MetricCard}" Margin="4,0">
                             <StackPanel>
                                 <TextBlock Text="CASH FLOW" FontSize="10" FontWeight="Bold"
-                                           Foreground="{StaticResource TextDimmedBrush}" Margin="0,0,0,8"/>
+                                           Foreground="{DynamicResource TextDimmedBrush}" Margin="0,0,0,8"/>
                                 <TextBlock Text="{Binding CashFlowDisplay}" FontSize="28" FontWeight="ExtraBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
                                 <Border CornerRadius="4" Padding="8,3" HorizontalAlignment="Left" Margin="0,8,0,0">
                                     <Border.Style>
                                         <Style TargetType="Border">
-                                            <Setter Property="Background" Value="#1e3a5f"/>
+                                            <Setter Property="Background" Value="{DynamicResource PositiveBadgeBgBrush}"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding CashFlowPositive}" Value="False">
-                                                    <Setter Property="Background" Value="#3b1515"/>
+                                                    <Setter Property="Background" Value="{DynamicResource NegativeBadgeBgBrush}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -139,10 +145,10 @@
                                     <TextBlock Text="{Binding CashFlowDetail}" FontSize="11">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
-                                                <Setter Property="Foreground" Value="{StaticResource AccentBlueBrush}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentBlueBrush}"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding CashFlowPositive}" Value="False">
-                                                        <Setter Property="Foreground" Value="{StaticResource AccentRedBrush}"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource AccentRedBrush}"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -155,11 +161,11 @@
                         <Border Style="{StaticResource MetricCard}" Margin="8,0,0,0">
                             <StackPanel>
                                 <TextBlock Text="TRANSACTIONS" FontSize="10" FontWeight="Bold"
-                                           Foreground="{StaticResource TextDimmedBrush}" Margin="0,0,0,8"/>
+                                           Foreground="{DynamicResource TextDimmedBrush}" Margin="0,0,0,8"/>
                                 <TextBlock Text="{Binding TransactionCountDisplay}" FontSize="28" FontWeight="ExtraBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}"/>
-                                <Border Background="#1e3a5f" CornerRadius="4" Padding="8,3" HorizontalAlignment="Left" Margin="0,8,0,0">
-                                    <TextBlock Text="{Binding TransactionCountDetail}" FontSize="11" Foreground="{StaticResource AccentBlueBrush}"/>
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <Border Background="{DynamicResource PositiveBadgeBgBrush}" CornerRadius="4" Padding="8,3" HorizontalAlignment="Left" Margin="0,8,0,0">
+                                    <TextBlock Text="{Binding TransactionCountDetail}" FontSize="11" Foreground="{DynamicResource AccentBlueBrush}"/>
                                 </Border>
                             </StackPanel>
                         </Border>
@@ -180,10 +186,10 @@
                     </StackPanel>
 
                     <!-- Status bar -->
-                    <Border Background="#122b26" BorderBrush="#1f5f52" BorderThickness="1"
+                    <Border Background="{DynamicResource SuccessStatusBgBrush}" BorderBrush="{DynamicResource SuccessStatusBorderBrush}" BorderThickness="1"
                             CornerRadius="6" Padding="10,7" Margin="0,0,0,12"
                             Visibility="{Binding StatusMessage, Converter={StaticResource NullVis}}">
-                        <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource AccentGreenBrush}"
+                        <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource AccentGreenBrush}"
                                    FontSize="12" FontWeight="SemiBold"/>
                     </Border>
 
@@ -198,17 +204,25 @@
                                 <StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                                         <TextBlock Text="Monthly trend" Style="{StaticResource SectionTitle}" Margin="0,0,12,0"/>
-                                        <Border Background="#1e3a5f" CornerRadius="4" Padding="8,3" VerticalAlignment="Center">
-                                            <TextBlock Text="6 months" FontSize="11" Foreground="{StaticResource AccentBlueBrush}"/>
+                                        <Border Background="{DynamicResource PositiveBadgeBgBrush}" CornerRadius="4" Padding="8,3" VerticalAlignment="Center">
+                                            <TextBlock Text="6 months" FontSize="11" Foreground="{DynamicResource AccentBlueBrush}"/>
                                         </Border>
                                     </StackPanel>
                                     <TextBlock Text="Income, total expenses, and recurring commitments"
                                                Style="{StaticResource SectionSubtitle}" Margin="0,0,0,12"/>
-                                    <lvc:CartesianChart Series="{Binding TrendSeries}" XAxes="{Binding TrendXAxes}"
-                                                        Height="260" LegendPosition="Bottom"
-                                                        LegendTextPaint="{Binding ChartLegendTextPaint}" LegendTextSize="12"
-                                                        TooltipTextPaint="{Binding ChartTooltipTextPaint}"
-                                                        TooltipBackgroundPaint="{Binding ChartTooltipBackgroundPaint}"/>
+                                    <ContentControl Content="{Binding ChartThemeVersion}">
+                                        <ContentControl.ContentTemplate>
+                                            <DataTemplate>
+                                                <lvc:CartesianChart Series="{Binding DataContext.TrendSeries, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    XAxes="{Binding DataContext.TrendXAxes, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    Height="260" LegendPosition="Bottom"
+                                                                    LegendTextPaint="{Binding DataContext.ChartLegendTextPaint, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    LegendTextSize="12"
+                                                                    TooltipTextPaint="{Binding DataContext.ChartTooltipTextPaint, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    TooltipBackgroundPaint="{Binding DataContext.ChartTooltipBackgroundPaint, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                            </DataTemplate>
+                                        </ContentControl.ContentTemplate>
+                                    </ContentControl>
                                 </StackPanel>
                             </Border>
 
@@ -220,12 +234,20 @@
                                         <Run Text="Expenses for "/>
                                         <Run Text="{Binding SelectedMonthDisplay, Mode=OneWay}"/>
                                     </TextBlock>
-                                    <lvc:PieChart Series="{Binding CategoryPieSeries}" Height="300"
-                                                  LegendPosition="Right"
-                                                  LegendTextPaint="{Binding ChartLegendTextPaint}" LegendTextSize="12"
-                                                  TooltipTextPaint="{Binding ChartTooltipTextPaint}"
-                                                  TooltipBackgroundPaint="{Binding ChartTooltipBackgroundPaint}"
-                                                  InitialRotation="-90"/>
+                                    <ContentControl Content="{Binding ChartThemeVersion}">
+                                        <ContentControl.ContentTemplate>
+                                            <DataTemplate>
+                                                <lvc:PieChart Series="{Binding DataContext.CategoryPieSeries, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                              Height="300"
+                                                              LegendPosition="Right"
+                                                              LegendTextPaint="{Binding DataContext.ChartLegendTextPaint, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                              LegendTextSize="12"
+                                                              TooltipTextPaint="{Binding DataContext.ChartTooltipTextPaint, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                              TooltipBackgroundPaint="{Binding DataContext.ChartTooltipBackgroundPaint, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                              InitialRotation="-90"/>
+                                            </DataTemplate>
+                                        </ContentControl.ContentTemplate>
+                                    </ContentControl>
                                 </StackPanel>
                             </Border>
                         </UniformGrid>
@@ -235,8 +257,8 @@
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                     <TextBlock Text="Yearly summary" Style="{StaticResource SectionTitle}" Margin="0,0,12,0"/>
-                                    <Border Background="#1e3a5f" CornerRadius="4" Padding="8,3" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding YearlyActiveMonths}" FontSize="11" Foreground="{StaticResource AccentBlueBrush}"/>
+                                    <Border Background="{DynamicResource PositiveBadgeBgBrush}" CornerRadius="4" Padding="8,3" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding YearlyActiveMonths}" FontSize="11" Foreground="{DynamicResource AccentBlueBrush}"/>
                                     </Border>
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource SectionSubtitle}" Margin="0,0,0,16">
@@ -252,28 +274,28 @@
 
                                     <StackPanel Grid.Column="0" Margin="0,0,16,0">
                                         <UniformGrid Columns="4" Margin="0,0,0,16">
-                                            <Border Background="#1a1a1a" CornerRadius="8" Padding="12,10" Margin="0,0,6,0">
+                                            <Border Background="{DynamicResource SubtlePanelBgBrush}" CornerRadius="8" Padding="12,10" Margin="0,0,6,0">
                                                 <StackPanel>
-                                                    <TextBlock Text="INCOME" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextDimmedBrush}"/>
-                                                    <TextBlock Text="{Binding YearlyIncome}" FontSize="16" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                    <TextBlock Text="INCOME" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextDimmedBrush}"/>
+                                                    <TextBlock Text="{Binding YearlyIncome}" FontSize="16" FontWeight="ExtraBold" Foreground="{DynamicResource TextPrimaryBrush}"/>
                                                 </StackPanel>
                                             </Border>
-                                            <Border Background="#1a1a1a" CornerRadius="8" Padding="12,10" Margin="3,0">
+                                            <Border Background="{DynamicResource SubtlePanelBgBrush}" CornerRadius="8" Padding="12,10" Margin="3,0">
                                                 <StackPanel>
-                                                    <TextBlock Text="EXPENSES" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextDimmedBrush}"/>
-                                                    <TextBlock Text="{Binding YearlyExpenses}" FontSize="16" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                    <TextBlock Text="EXPENSES" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextDimmedBrush}"/>
+                                                    <TextBlock Text="{Binding YearlyExpenses}" FontSize="16" FontWeight="ExtraBold" Foreground="{DynamicResource TextPrimaryBrush}"/>
                                                 </StackPanel>
                                             </Border>
-                                            <Border Background="#1a1a1a" CornerRadius="8" Padding="12,10" Margin="3,0">
+                                            <Border Background="{DynamicResource SubtlePanelBgBrush}" CornerRadius="8" Padding="12,10" Margin="3,0">
                                                 <StackPanel>
-                                                    <TextBlock Text="CASH FLOW" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextDimmedBrush}"/>
+                                                    <TextBlock Text="CASH FLOW" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextDimmedBrush}"/>
                                                     <TextBlock Text="{Binding YearlyCashFlow}" FontSize="16" FontWeight="ExtraBold"
                                                                Foreground="{Binding YearlyCashFlowValue, Converter={StaticResource PosNegColor}}"/>
                                                 </StackPanel>
                                             </Border>
-                                            <Border Background="#1a1a1a" CornerRadius="8" Padding="12,10" Margin="6,0,0,0">
+                                            <Border Background="{DynamicResource SubtlePanelBgBrush}" CornerRadius="8" Padding="12,10" Margin="6,0,0,0">
                                                 <StackPanel>
-                                                    <TextBlock Text="SAVED" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextDimmedBrush}"/>
+                                                    <TextBlock Text="SAVED" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextDimmedBrush}"/>
                                                     <TextBlock Text="{Binding YearlySaved}" FontSize="16" FontWeight="ExtraBold"
                                                                Foreground="{Binding YearlySavingsRateValue, Converter={StaticResource PosNegColor}}"/>
                                                 </StackPanel>
@@ -281,48 +303,57 @@
                                         </UniformGrid>
 
                                         <UniformGrid Columns="2" Margin="0,0,0,0">
-                                            <Border Background="Transparent" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1"
+                                            <Border Background="Transparent" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
                                                     CornerRadius="8" Padding="12,10" Margin="0,0,4,6">
                                                 <StackPanel>
-                                                    <TextBlock Text="RECURRING TOTAL" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextDimmedBrush}"/>
-                                                    <TextBlock Text="{Binding YearlyRecurring}" FontSize="14" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                    <TextBlock Text="RECURRING TOTAL" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextDimmedBrush}"/>
+                                                    <TextBlock Text="{Binding YearlyRecurring}" FontSize="14" FontWeight="ExtraBold" Foreground="{DynamicResource TextPrimaryBrush}"/>
                                                 </StackPanel>
                                             </Border>
-                                            <Border Background="Transparent" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1"
+                                            <Border Background="Transparent" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
                                                     CornerRadius="8" Padding="12,10" Margin="4,0,0,6">
                                                 <StackPanel>
-                                                    <TextBlock Text="AVG MONTHLY SPEND" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextDimmedBrush}"/>
-                                                    <TextBlock Text="{Binding YearlyAvgMonthly}" FontSize="14" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                    <TextBlock Text="AVG MONTHLY SPEND" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextDimmedBrush}"/>
+                                                    <TextBlock Text="{Binding YearlyAvgMonthly}" FontSize="14" FontWeight="ExtraBold" Foreground="{DynamicResource TextPrimaryBrush}"/>
                                                 </StackPanel>
                                             </Border>
-                                            <Border Background="Transparent" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1"
+                                            <Border Background="Transparent" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
                                                     CornerRadius="8" Padding="12,10" Margin="0,0,4,0">
                                                 <StackPanel>
-                                                    <TextBlock Text="BEST CASH FLOW" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextDimmedBrush}"/>
+                                                    <TextBlock Text="BEST CASH FLOW" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextDimmedBrush}"/>
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="{Binding YearlyBestMonth}" FontSize="14" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}"/>
-                                                        <TextBlock Text="{Binding YearlyBestMonthLabel}" FontSize="11" Foreground="{StaticResource TextDimmedBrush}" VerticalAlignment="Bottom" Margin="6,0,0,1"/>
+                                                        <TextBlock Text="{Binding YearlyBestMonth}" FontSize="14" FontWeight="ExtraBold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                                        <TextBlock Text="{Binding YearlyBestMonthLabel}" FontSize="11" Foreground="{DynamicResource TextDimmedBrush}" VerticalAlignment="Bottom" Margin="6,0,0,1"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                             </Border>
-                                            <Border Background="Transparent" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1"
+                                            <Border Background="Transparent" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
                                                     CornerRadius="8" Padding="12,10" Margin="4,0,0,0">
                                                 <StackPanel>
-                                                    <TextBlock Text="HIGHEST SPEND" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextDimmedBrush}"/>
+                                                    <TextBlock Text="HIGHEST SPEND" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextDimmedBrush}"/>
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="{Binding YearlyHighestSpend}" FontSize="14" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}"/>
-                                                        <TextBlock Text="{Binding YearlyHighestSpendLabel}" FontSize="11" Foreground="{StaticResource TextDimmedBrush}" VerticalAlignment="Bottom" Margin="6,0,0,1"/>
+                                                        <TextBlock Text="{Binding YearlyHighestSpend}" FontSize="14" FontWeight="ExtraBold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                                        <TextBlock Text="{Binding YearlyHighestSpendLabel}" FontSize="11" Foreground="{DynamicResource TextDimmedBrush}" VerticalAlignment="Bottom" Margin="6,0,0,1"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                             </Border>
                                         </UniformGrid>
                                     </StackPanel>
 
-                                    <lvc:PieChart Grid.Column="1" Series="{Binding YearlyPieSeries}" Height="320"
-                                                  LegendPosition="Bottom" InitialRotation="-90"
-                                                  LegendTextPaint="{Binding ChartLegendTextPaint}" LegendTextSize="12"
-                                                  TooltipTextPaint="{Binding ChartTooltipTextPaint}"
-                                                  TooltipBackgroundPaint="{Binding ChartTooltipBackgroundPaint}"/>
+                                    <ContentControl Grid.Column="1" Content="{Binding ChartThemeVersion}">
+                                        <ContentControl.ContentTemplate>
+                                            <DataTemplate>
+                                                <lvc:PieChart Series="{Binding DataContext.YearlyPieSeries, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                              Height="320"
+                                                              LegendPosition="Bottom"
+                                                              InitialRotation="-90"
+                                                              LegendTextPaint="{Binding DataContext.ChartLegendTextPaint, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                              LegendTextSize="12"
+                                                              TooltipTextPaint="{Binding DataContext.ChartTooltipTextPaint, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                              TooltipBackgroundPaint="{Binding DataContext.ChartTooltipBackgroundPaint, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                            </DataTemplate>
+                                        </ContentControl.ContentTemplate>
+                                    </ContentControl>
                                 </Grid>
                             </StackPanel>
                         </Border>
@@ -333,8 +364,8 @@
                                 <StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                         <TextBlock Text="Budget pressure" Style="{StaticResource SectionTitle}" Margin="0,0,12,0"/>
-                                        <Border Background="#3b2510" CornerRadius="4" Padding="8,3" VerticalAlignment="Center">
-                                            <TextBlock Text="live totals" FontSize="11" Foreground="{StaticResource AccentOrangeBrush}"/>
+                                        <Border Background="{DynamicResource WarningBadgeBgBrush}" CornerRadius="4" Padding="8,3" VerticalAlignment="Center">
+                                            <TextBlock Text="live totals" FontSize="11" Foreground="{DynamicResource AccentOrangeBrush}"/>
                                         </Border>
                                     </StackPanel>
                                     <TextBlock Text="Monthly limits compared with actual spend"
@@ -345,8 +376,8 @@
                                                 <StackPanel Margin="0,0,0,10">
                                                     <Grid Margin="0,0,0,4">
                                                         <TextBlock Text="{Binding Category}" FontWeight="SemiBold" FontSize="13"
-                                                                   Foreground="{StaticResource TextPrimaryBrush}"/>
-                                                        <TextBlock HorizontalAlignment="Right" FontSize="12" Foreground="{StaticResource TextDimmedBrush}">
+                                                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                                        <TextBlock HorizontalAlignment="Right" FontSize="12" Foreground="{DynamicResource TextDimmedBrush}">
                                                             <Run Text="{Binding Spent, StringFormat='{}{0:C2}', Mode=OneWay}"/>
                                                             <Run Text=" / "/>
                                                             <Run Text="{Binding Budget, StringFormat='{}{0:C2}', Mode=OneWay}"/>
@@ -372,8 +403,8 @@
                                                 <StackPanel Margin="0,0,0,16">
                                                     <Grid Margin="0,0,0,4">
                                                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13"
-                                                                   Foreground="{StaticResource TextPrimaryBrush}"/>
-                                                        <TextBlock HorizontalAlignment="Right" FontSize="12" Foreground="{StaticResource TextDimmedBrush}">
+                                                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                                        <TextBlock HorizontalAlignment="Right" FontSize="12" Foreground="{DynamicResource TextDimmedBrush}">
                                                             <Run Text="{Binding Saved, StringFormat='{}{0:C0}', Mode=OneWay}"/>
                                                             <Run Text=" / "/>
                                                             <Run Text="{Binding Target, StringFormat='{}{0:C0}', Mode=OneWay}"/>
@@ -500,8 +531,8 @@
                                 <StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                         <TextBlock Text="Ledger" Style="{StaticResource SectionTitle}" Margin="0,0,12,0"/>
-                                        <Border Background="#252525" CornerRadius="4" Padding="8,3" VerticalAlignment="Center">
-                                            <TextBlock FontSize="11" Foreground="{StaticResource TextDimmedBrush}">
+                                        <Border Background="{DynamicResource TabInactiveBgBrush}" CornerRadius="4" Padding="8,3" VerticalAlignment="Center">
+                                            <TextBlock FontSize="11" Foreground="{DynamicResource TextDimmedBrush}">
                                                 <Run Text="{Binding FilteredTransactions.Count, Mode=OneWay}"/>
                                                 <Run Text=" rows"/>
                                             </TextBlock>
@@ -519,7 +550,7 @@
                                             <TextBox Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
                                                      Style="{StaticResource ModernTextBox}"/>
                                             <TextBlock Text="Search merchant, category, account"
-                                                       Foreground="{StaticResource TextDimmedBrush}" FontSize="13"
+                                                       Foreground="{DynamicResource TextDimmedBrush}" FontSize="13"
                                                        Margin="12,0,0,0" VerticalAlignment="Center"
                                                        IsHitTestVisible="False"
                                                        Visibility="{Binding SearchQuery, Converter={StaticResource InvNullVis}}"/>
@@ -553,13 +584,13 @@
                                                         <StackPanel Orientation="Horizontal">
                                                             <Button Content="✎" FontSize="14" Padding="4,2"
                                                                     Background="Transparent" BorderThickness="0"
-                                                                    Foreground="{StaticResource TextDimmedBrush}" Cursor="Hand"
+                                                                    Foreground="{DynamicResource TextDimmedBrush}" Cursor="Hand"
                                                                     ToolTip="Edit"
                                                                     Command="{Binding DataContext.StartEditTransactionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                     CommandParameter="{Binding}"/>
                                                             <Button Content="✕" FontSize="14" Padding="4,2"
                                                                     Background="Transparent" BorderThickness="0"
-                                                                    Foreground="{StaticResource AccentRedBrush}" Cursor="Hand"
+                                                                    Foreground="{DynamicResource AccentRedBrush}" Cursor="Hand"
                                                                     ToolTip="Delete"
                                                                     Visibility="{Binding Source, Converter={StaticResource NonRecurringVis}}"
                                                                     Command="{Binding DataContext.RemoveTransactionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -645,17 +676,17 @@
                                                         <StackPanel Orientation="Horizontal">
                                                             <Button Content="✎" FontSize="14" Padding="4,2"
                                                                     Background="Transparent" BorderThickness="0"
-                                                                    Foreground="{StaticResource TextDimmedBrush}" Cursor="Hand"
+                                                                    Foreground="{DynamicResource TextDimmedBrush}" Cursor="Hand"
                                                                     Command="{Binding DataContext.StartEditRecurringCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                     CommandParameter="{Binding}"/>
                                                             <Button Content="⏯" FontSize="14" Padding="4,2"
                                                                     Background="Transparent" BorderThickness="0"
-                                                                    Foreground="{StaticResource AccentBlueBrush}" Cursor="Hand"
+                                                                    Foreground="{DynamicResource AccentBlueBrush}" Cursor="Hand"
                                                                     Command="{Binding DataContext.ToggleRecurringCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                     CommandParameter="{Binding}"/>
                                                             <Button Content="✕" FontSize="14" Padding="4,2"
                                                                     Background="Transparent" BorderThickness="0"
-                                                                    Foreground="{StaticResource AccentRedBrush}" Cursor="Hand"
+                                                                    Foreground="{DynamicResource AccentRedBrush}" Cursor="Hand"
                                                                     Command="{Binding DataContext.RemoveRecurringCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                     CommandParameter="{Binding}"/>
                                                         </StackPanel>
@@ -744,7 +775,7 @@
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                                     <TextBlock Text="Category limits" Style="{StaticResource SectionTitle}" Margin="0,0,16,0"/>
                                     <CheckBox Content="Enabled" IsChecked="{Binding CategoryLimitsEnabled}"
-                                              Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"
+                                              Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"
                                               Command="{Binding ToggleCategoryLimitsCommand}"/>
                                 </StackPanel>
 
@@ -796,7 +827,7 @@
                                                 </StackPanel>
                                                 <Button Grid.Column="1" Content="✕" FontSize="14" Padding="6,4"
                                                         Background="Transparent" BorderThickness="0"
-                                                        Foreground="{StaticResource AccentRedBrush}" Cursor="Hand"
+                                                        Foreground="{DynamicResource AccentRedBrush}" Cursor="Hand"
                                                         VerticalAlignment="Bottom" Margin="4,0,0,0"
                                                         Command="{Binding DataContext.RemoveCategoryCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                         CommandParameter="{Binding}"/>
@@ -833,7 +864,7 @@
                                     </StackPanel>
                                     <Button Content="Create profile" Command="{Binding CreateProfileCommand}"
                                             Style="{StaticResource AccentButton}" Margin="0,0,0,12"/>
-                                    <Border Height="1" Background="{StaticResource CardBorderBrush}" Margin="0,0,0,12"/>
+                                    <Border Height="1" Background="{DynamicResource CardBorderBrush}" Margin="0,0,0,12"/>
                                     <TextBlock Text="Rename current profile" Style="{StaticResource FieldLabel}"/>
                                     <TextBox Text="{Binding RenameProfileName, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource ModernTextBox}" Margin="0,0,0,8"/>
@@ -884,7 +915,7 @@
                                             Style="{StaticResource ModernButton}" Margin="0,0,0,8"/>
                                     <Button Content="Import from JSON..." Command="{Binding ImportDataCommand}"
                                             Style="{StaticResource ModernButton}" Margin="0,0,0,16"/>
-                                    <Border Height="1" Background="{StaticResource CardBorderBrush}" Margin="0,0,0,12"/>
+                                    <Border Height="1" Background="{DynamicResource CardBorderBrush}" Margin="0,0,0,12"/>
                                     <Button Content="Clear saved budget data" Command="{Binding ClearBudgetDataCommand}"
                                             Style="{StaticResource DangerButton}" Margin="0,0,0,8"/>
                                     <Button Content="Reset sample data" Command="{Binding ResetSampleDataCommand}"

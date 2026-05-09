@@ -10,8 +10,11 @@ using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
+using System.Windows.Media;
 
 namespace BudgetDesk.ViewModels;
+
+public sealed record ThemeOption(InterfaceTheme Mode, string Name);
 
 public partial class MainViewModel : ObservableObject
 {
@@ -20,11 +23,21 @@ public partial class MainViewModel : ObservableObject
     readonly StorageService _storage = new();
     readonly BudgetState _fallbackState = SampleData.CreateInitialBudgetState();
     bool _initialized;
+    bool _syncingTheme;
 
     [ObservableProperty] string _selectedTab = "Dashboard";
     [ObservableProperty] string _selectedMonth = BudgetCalculator.CurrentMonthKey();
     [ObservableProperty] string _selectedMonthDisplay = "";
     [ObservableProperty] string _statusMessage = "";
+
+    public IReadOnlyList<ThemeOption> ThemeOptions { get; } =
+    [
+        new(InterfaceTheme.Dark, "Dark"),
+        new(InterfaceTheme.Light, "Light"),
+        new(InterfaceTheme.Oled, "OLED dark")
+    ];
+
+    [ObservableProperty] InterfaceTheme _selectedTheme = InterfaceTheme.Dark;
 
     // Profiles
     [ObservableProperty] ObservableCollection<BudgetProfile> _profiles = [];
@@ -48,6 +61,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] ISeries[] _trendSeries = [];
     [ObservableProperty] Axis[] _trendXAxes = [];
     [ObservableProperty] ISeries[] _categoryPieSeries = [];
+    [ObservableProperty] int _chartThemeVersion;
     [ObservableProperty] ObservableCollection<BudgetBarItem> _budgetBars = [];
     [ObservableProperty] ObservableCollection<SavingsGoal> _savingsGoals = [];
     [ObservableProperty] bool _categoryLimitsEnabled = true;
@@ -70,9 +84,9 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] string _yearlyActiveMonths = "0 active / 0 months";
     [ObservableProperty] ISeries[] _yearlyPieSeries = [];
 
-    public SolidColorPaint ChartLegendTextPaint { get; } = new(SKColor.Parse("#f5f5f5"));
-    public SolidColorPaint ChartTooltipTextPaint { get; } = new(SKColor.Parse("#f5f5f5"));
-    public SolidColorPaint ChartTooltipBackgroundPaint { get; } = new(SKColor.Parse("#1e1e1e"));
+    [ObservableProperty] SolidColorPaint _chartLegendTextPaint = new(SKColor.Parse("#f5f5f5"));
+    [ObservableProperty] SolidColorPaint _chartTooltipTextPaint = new(SKColor.Parse("#111827"));
+    [ObservableProperty] SolidColorPaint _chartTooltipBackgroundPaint = new(SKColor.Parse("#ffffff"));
 
     // Transactions
     [ObservableProperty] ObservableCollection<Transaction> _filteredTransactions = [];
@@ -146,6 +160,8 @@ public partial class MainViewModel : ObservableObject
         SelectedMonth = BudgetCalculator.CurrentMonthKey();
         RecurringStartMonth = SelectedMonth;
         PurchaseDate = $"{SelectedMonth}-15";
+        SelectedTheme = State.Theme;
+        ApplyTheme(SelectedTheme);
 
         PropertyChanged += OnPropertyChanged;
         _initialized = true;
@@ -162,7 +178,29 @@ public partial class MainViewModel : ObservableObject
         CategoryFilter = AllCategoriesFilter;
         EditingTransaction = null;
         EditingRecurring = null;
+        SyncThemeFromState();
         RefreshAll();
+    }
+
+    partial void OnSelectedThemeChanged(InterfaceTheme value)
+    {
+        ApplyTheme(value);
+
+        if (_initialized)
+        {
+            RefreshAll();
+            ChartThemeVersion++;
+        }
+        else
+        {
+            RefreshDashboard();
+        }
+
+        if (!_initialized || _syncingTheme) return;
+
+        State.Theme = value;
+        SaveProfilesOnly();
+        ShowStatus($"Theme set to {ThemeName(value)}.");
     }
 
     void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -235,7 +273,13 @@ public partial class MainViewModel : ObservableObject
         var trend = BudgetCalculator.TrendData(State, SelectedMonth);
         var labels = trend.Select(t => t.Month).ToArray();
 
-        TrendXAxes = [new Axis { Labels = labels, TextSize = 12, SeparatorsPaint = new SolidColorPaint(SKColors.Transparent) }];
+        TrendXAxes = [new Axis
+        {
+            Labels = labels,
+            TextSize = 12,
+            LabelsPaint = ChartLegendTextPaint,
+            SeparatorsPaint = new SolidColorPaint(SKColors.Transparent)
+        }];
         TrendSeries =
         [
             new LineSeries<double>
@@ -355,12 +399,31 @@ public partial class MainViewModel : ObservableObject
 
     void SaveAndRefresh()
     {
+        SaveProfilesOnly();
+        RefreshAll();
+    }
+
+    void SaveProfilesOnly()
+    {
         if (ActiveProfile != null)
         {
             ActiveProfile.UpdatedAt = DateTime.UtcNow.ToString("o");
             _storage.SaveProfiles([.. Profiles]);
         }
-        RefreshAll();
+    }
+
+    void SyncThemeFromState()
+    {
+        _syncingTheme = true;
+        try
+        {
+            SelectedTheme = State.Theme;
+            ApplyTheme(SelectedTheme);
+        }
+        finally
+        {
+            _syncingTheme = false;
+        }
     }
 
     void ShowStatus(string message)
@@ -829,6 +892,7 @@ public partial class MainViewModel : ObservableObject
         if (imported != null && ActiveProfile != null)
         {
             ActiveProfile.State = imported;
+            SyncThemeFromState();
             SaveAndRefresh();
             ShowStatus("Budget restored from file.");
         }
@@ -842,6 +906,7 @@ public partial class MainViewModel : ObservableObject
             "Clear data", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
 
         ActiveProfile.State = SampleData.CreateEmptyBudgetState();
+        ActiveProfile.State.Theme = SelectedTheme;
         ImportPreview.Clear();
         SearchQuery = "";
         CategoryFilter = AllCategoriesFilter;
@@ -857,11 +922,228 @@ public partial class MainViewModel : ObservableObject
             "Reset", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
 
         ActiveProfile.State = SampleData.CreateInitialBudgetState();
+        ActiveProfile.State.Theme = SelectedTheme;
         SaveAndRefresh();
         ShowStatus("Sample data restored.");
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────
+
+    void ApplyTheme(InterfaceTheme theme)
+    {
+        var palette = PaletteFor(theme);
+
+        SetBrush("PageBgBrush", palette.PageBg);
+        SetBrush("CardBgBrush", palette.CardBg);
+        SetBrush("CardBorderBrush", palette.CardBorder);
+        SetBrush("HeaderBgBrush", palette.HeaderBg);
+        SetBrush("TextPrimaryBrush", palette.TextPrimary);
+        SetBrush("TextSecondaryBrush", palette.TextSecondary);
+        SetBrush("TextDimmedBrush", palette.TextDimmed);
+        SetBrush("AccentBlueBrush", palette.AccentBlue);
+        SetBrush("AccentOrangeBrush", palette.AccentOrange);
+        SetBrush("AccentGreenBrush", palette.AccentGreen);
+        SetBrush("AccentRedBrush", palette.AccentRed);
+        SetBrush("ButtonBgBrush", palette.ButtonBg);
+        SetBrush("ButtonHoverBrush", palette.ButtonHover);
+        SetBrush("ButtonPressedBrush", palette.ButtonPressed);
+        SetBrush("InputBgBrush", palette.InputBg);
+        SetBrush("InputBorderBrush", palette.InputBorder);
+        SetBrush("InputHoverBgBrush", palette.InputHoverBg);
+        SetBrush("InputHoverBorderBrush", palette.InputHoverBorder);
+        SetBrush("ComboItemHoverBrush", palette.ComboItemHover);
+        SetBrush("ComboItemSelectedBgBrush", palette.ComboItemSelected);
+        SetBrush("TabActiveBgBrush", palette.AccentBlue);
+        SetBrush("TabInactiveBgBrush", palette.TabInactive);
+        SetBrush("AccentBlueHoverBrush", palette.AccentBlueHover);
+        SetBrush("AccentBluePressedBrush", palette.AccentBluePressed);
+        SetBrush("AccentRedHoverBrush", palette.AccentRedHover);
+        SetBrush("AccentRedPressedBrush", palette.AccentRedPressed);
+        SetBrush("PositiveBadgeBgBrush", palette.PositiveBadgeBg);
+        SetBrush("WarningBadgeBgBrush", palette.WarningBadgeBg);
+        SetBrush("NegativeBadgeBgBrush", palette.NegativeBadgeBg);
+        SetBrush("SuccessStatusBgBrush", palette.SuccessStatusBg);
+        SetBrush("SuccessStatusBorderBrush", palette.SuccessStatusBorder);
+        SetBrush("SubtlePanelBgBrush", palette.SubtlePanelBg);
+        SetBrush("DataGridHeaderBgBrush", palette.DataGridHeaderBg);
+        SetBrush("DataGridAlternateRowBgBrush", palette.DataGridAlternateRowBg);
+        SetBrush("DataGridCellSelectedBgBrush", palette.DataGridCellSelectedBg);
+        SetBrush("DataGridRowHoverBgBrush", palette.DataGridRowHoverBg);
+        SetBrush("DataGridRowSelectedBgBrush", palette.DataGridRowSelectedBg);
+        SetBrush("ProgressTrackBrush", palette.ProgressTrack);
+
+        SetBrush(SystemColors.WindowBrushKey, palette.InputBg);
+        SetBrush(SystemColors.ControlBrushKey, palette.InputBg);
+        SetBrush(SystemColors.ControlTextBrushKey, palette.TextPrimary);
+        SetBrush(SystemColors.HighlightBrushKey, palette.ComboItemHover);
+        SetBrush(SystemColors.HighlightTextBrushKey, palette.TextPrimary);
+
+        ChartLegendTextPaint = new SolidColorPaint(SKColor.Parse(palette.ChartText));
+        // Keep chart tooltips stable across runtime theme switches. LiveCharts can
+        // keep the previous tooltip visual alive briefly, so theme-dependent
+        // tooltip paints can become white-on-white or black-on-black.
+        ChartTooltipTextPaint = new SolidColorPaint(SKColor.Parse("#111827"));
+        ChartTooltipBackgroundPaint = new SolidColorPaint(SKColor.Parse("#ffffff"));
+    }
+
+    static void SetBrush(object key, string color)
+    {
+        if (Application.Current?.Resources == null) return;
+        SetBrush(Application.Current.Resources, key, WpfColor(color));
+    }
+
+    static bool SetBrush(ResourceDictionary dictionary, object key, Color color)
+    {
+        if (dictionary.Contains(key))
+        {
+            dictionary[key] = new SolidColorBrush(color);
+            return true;
+        }
+
+        foreach (var merged in dictionary.MergedDictionaries)
+        {
+            if (SetBrush(merged, key, color)) return true;
+        }
+
+        return false;
+    }
+
+    static Color WpfColor(string hex) =>
+        (Color)ColorConverter.ConvertFromString(hex)!;
+
+    static string ThemeName(InterfaceTheme theme) => theme switch
+    {
+        InterfaceTheme.Light => "Light",
+        InterfaceTheme.Oled => "OLED dark",
+        _ => "Dark"
+    };
+
+    static ThemePalette PaletteFor(InterfaceTheme theme) => theme switch
+    {
+        InterfaceTheme.Light => new ThemePalette
+        {
+            PageBg = "#f3f6fb",
+            CardBg = "#ffffff",
+            CardBorder = "#d8dee8",
+            HeaderBg = "#ffffff",
+            TextPrimary = "#111827",
+            TextSecondary = "#4b5563",
+            TextDimmed = "#6b7280",
+            AccentBlue = "#2563eb",
+            AccentBlueHover = "#1d4ed8",
+            AccentBluePressed = "#1e40af",
+            AccentOrange = "#ea580c",
+            AccentGreen = "#0f766e",
+            AccentRed = "#dc2626",
+            AccentRedHover = "#b91c1c",
+            AccentRedPressed = "#991b1b",
+            ButtonBg = "#eef2f7",
+            ButtonHover = "#e2e8f0",
+            ButtonPressed = "#cbd5e1",
+            InputBg = "#ffffff",
+            InputBorder = "#cbd5e1",
+            InputHoverBg = "#f8fafc",
+            InputHoverBorder = "#94a3b8",
+            ComboItemHover = "#eaf2ff",
+            ComboItemSelected = "#dbeafe",
+            TabInactive = "#e8edf5",
+            PositiveBadgeBg = "#dbeafe",
+            WarningBadgeBg = "#ffedd5",
+            NegativeBadgeBg = "#fee2e2",
+            SuccessStatusBg = "#dcfce7",
+            SuccessStatusBorder = "#86efac",
+            SubtlePanelBg = "#f8fafc",
+            DataGridHeaderBg = "#f1f5f9",
+            DataGridAlternateRowBg = "#f8fafc",
+            DataGridCellSelectedBg = "#dbeafe",
+            DataGridRowHoverBg = "#eff6ff",
+            DataGridRowSelectedBg = "#dbeafe",
+            ProgressTrack = "#e5e7eb",
+            ChartText = "#111827"
+        },
+        InterfaceTheme.Oled => new ThemePalette
+        {
+            PageBg = "#000000",
+            CardBg = "#050505",
+            CardBorder = "#1f1f1f",
+            HeaderBg = "#000000",
+            TextPrimary = "#f8fafc",
+            TextSecondary = "#a1a1aa",
+            TextDimmed = "#71717a",
+            AccentBlue = "#3b82f6",
+            AccentBlueHover = "#2563eb",
+            AccentBluePressed = "#1d4ed8",
+            AccentOrange = "#fb923c",
+            AccentGreen = "#2dd4bf",
+            AccentRed = "#f87171",
+            AccentRedHover = "#ef4444",
+            AccentRedPressed = "#dc2626",
+            ButtonBg = "#101010",
+            ButtonHover = "#1a1a1a",
+            ButtonPressed = "#222222",
+            InputBg = "#080808",
+            InputBorder = "#242424",
+            InputHoverBg = "#101010",
+            InputHoverBorder = "#3a3a3a",
+            ComboItemHover = "#171717",
+            ComboItemSelected = "#0b2447",
+            TabInactive = "#101010",
+            PositiveBadgeBg = "#071d36",
+            WarningBadgeBg = "#2a1605",
+            NegativeBadgeBg = "#2a0909",
+            SuccessStatusBg = "#031b16",
+            SuccessStatusBorder = "#0f4d42",
+            SubtlePanelBg = "#080808",
+            DataGridHeaderBg = "#080808",
+            DataGridAlternateRowBg = "#050505",
+            DataGridCellSelectedBg = "#111111",
+            DataGridRowHoverBg = "#0d0d0d",
+            DataGridRowSelectedBg = "#101010",
+            ProgressTrack = "#111111",
+            ChartText = "#f8fafc"
+        },
+        _ => new ThemePalette
+        {
+            PageBg = "#121212",
+            CardBg = "#1e1e1e",
+            CardBorder = "#2a2a2a",
+            HeaderBg = "#181818",
+            TextPrimary = "#f5f5f5",
+            TextSecondary = "#9ca3af",
+            TextDimmed = "#6b7280",
+            AccentBlue = "#3b82f6",
+            AccentBlueHover = "#2563eb",
+            AccentBluePressed = "#1d4ed8",
+            AccentOrange = "#f97316",
+            AccentGreen = "#14b8a6",
+            AccentRed = "#ef4444",
+            AccentRedHover = "#dc2626",
+            AccentRedPressed = "#b91c1c",
+            ButtonBg = "#2a2a2a",
+            ButtonHover = "#333333",
+            ButtonPressed = "#3b3b3b",
+            InputBg = "#252525",
+            InputBorder = "#3a3a3a",
+            InputHoverBg = "#2f2f2f",
+            InputHoverBorder = "#4a4a4a",
+            ComboItemHover = "#333333",
+            ComboItemSelected = "#1e3a5f",
+            TabInactive = "#252525",
+            PositiveBadgeBg = "#1e3a5f",
+            WarningBadgeBg = "#3b2510",
+            NegativeBadgeBg = "#3b1515",
+            SuccessStatusBg = "#122b26",
+            SuccessStatusBorder = "#1f5f52",
+            SubtlePanelBg = "#1a1a1a",
+            DataGridHeaderBg = "#252525",
+            DataGridAlternateRowBg = "#1a1a1a",
+            DataGridCellSelectedBg = "#2a2a2a",
+            DataGridRowHoverBg = "#222222",
+            DataGridRowSelectedBg = "#252525",
+            ProgressTrack = "#252525",
+            ChartText = "#f5f5f5"
+        }
+    };
 
     static string EnsureOption(string value, IEnumerable<string> options)
     {
@@ -921,7 +1203,50 @@ public partial class MainViewModel : ObservableObject
                 Saved = g.Saved, MonthlyContribution = g.MonthlyContribution, Color = g.Color
             }).ToList(),
             Accounts = [.. source.Accounts],
-            PlannedMonthlyIncome = source.PlannedMonthlyIncome
+            PlannedMonthlyIncome = source.PlannedMonthlyIncome,
+            Theme = source.Theme
         };
     }
+}
+
+sealed class ThemePalette
+{
+    public string PageBg { get; init; } = "";
+    public string CardBg { get; init; } = "";
+    public string CardBorder { get; init; } = "";
+    public string HeaderBg { get; init; } = "";
+    public string TextPrimary { get; init; } = "";
+    public string TextSecondary { get; init; } = "";
+    public string TextDimmed { get; init; } = "";
+    public string AccentBlue { get; init; } = "";
+    public string AccentBlueHover { get; init; } = "";
+    public string AccentBluePressed { get; init; } = "";
+    public string AccentOrange { get; init; } = "";
+    public string AccentGreen { get; init; } = "";
+    public string AccentRed { get; init; } = "";
+    public string AccentRedHover { get; init; } = "";
+    public string AccentRedPressed { get; init; } = "";
+    public string ButtonBg { get; init; } = "";
+    public string ButtonHover { get; init; } = "";
+    public string ButtonPressed { get; init; } = "";
+    public string InputBg { get; init; } = "";
+    public string InputBorder { get; init; } = "";
+    public string InputHoverBg { get; init; } = "";
+    public string InputHoverBorder { get; init; } = "";
+    public string ComboItemHover { get; init; } = "";
+    public string ComboItemSelected { get; init; } = "";
+    public string TabInactive { get; init; } = "";
+    public string PositiveBadgeBg { get; init; } = "";
+    public string WarningBadgeBg { get; init; } = "";
+    public string NegativeBadgeBg { get; init; } = "";
+    public string SuccessStatusBg { get; init; } = "";
+    public string SuccessStatusBorder { get; init; } = "";
+    public string SubtlePanelBg { get; init; } = "";
+    public string DataGridHeaderBg { get; init; } = "";
+    public string DataGridAlternateRowBg { get; init; } = "";
+    public string DataGridCellSelectedBg { get; init; } = "";
+    public string DataGridRowHoverBg { get; init; } = "";
+    public string DataGridRowSelectedBg { get; init; } = "";
+    public string ProgressTrack { get; init; } = "";
+    public string ChartText { get; init; } = "";
 }

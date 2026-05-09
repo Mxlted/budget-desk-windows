@@ -14,7 +14,7 @@ Budget Desk is a Windows budgeting app for tracking monthly income, purchases, r
 - CSV transaction import with preview before saving.
 - JSON backup and restore from inside the app.
 - Local data storage with no account sign-in required.
-- Dark Windows desktop interface with charting and tab-based navigation.
+- Light, dark, and OLED dark interface options with charting and tab-based navigation.
 
 ## Download And Run
 
