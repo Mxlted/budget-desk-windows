@@ -16,6 +16,8 @@ Budget Desk is a Windows budgeting app for tracking monthly income, purchases, r
 - Local data storage with no account sign-in required.
 - Light, dark, and OLED dark interface options with charting and tab-based navigation.
 
+<img width="1731" height="1668" alt="090526_1778306411" src="https://github.com/user-attachments/assets/7bad84fb-76ba-4f7b-bfac-ff3e33211d60" />
+
 ## Download And Run
 
 1. Open the [Budget Desk releases page](https://github.com/Mxlted/budget-desk-windows/releases/latest).
