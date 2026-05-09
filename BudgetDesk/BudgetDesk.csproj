@@ -8,10 +8,10 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>BudgetDesk</AssemblyName>
     <RootNamespace>BudgetDesk</RootNamespace>
-    <Version>1.0.1</Version>
-    <AssemblyVersion>1.0.1.0</AssemblyVersion>
-    <FileVersion>1.0.1.0</FileVersion>
-    <InformationalVersion>1.0.1</InformationalVersion>
+    <Version>1.1.0</Version>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
+    <InformationalVersion>1.1.0</InformationalVersion>
     <Authors>Nathan</Authors>
     <Description>A local-first monthly budgeting desktop app.</Description>
     <NoWarn>$(NoWarn);NU1701</NoWarn>
